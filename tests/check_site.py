@@ -132,13 +132,13 @@ def test_site_files_and_links():
     for ignored in [".git", ".DS_Store", "docs", "tests"]:
         assert ignored in dockerignore_text
 
-    assert "image: docker:27" in gitlab_ci_text
-    assert "docker:27-dind" in gitlab_ci_text
-    assert "DOCKER_TLS_CERTDIR: \"\"" in gitlab_ci_text
-    assert 'docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"' in gitlab_ci_text
-    assert 'docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE:latest" .' in gitlab_ci_text
-    assert 'docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"' in gitlab_ci_text
-    assert 'docker push "$CI_REGISTRY_IMAGE:latest"' in gitlab_ci_text
+    assert "gcr.io/kaniko-project/executor" in gitlab_ci_text
+    assert "--context \"$CI_PROJECT_DIR\"" in gitlab_ci_text
+    assert "--dockerfile \"$CI_PROJECT_DIR/Dockerfile\"" in gitlab_ci_text
+    assert "--destination \"$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA\"" in gitlab_ci_text
+    assert "--destination \"$CI_REGISTRY_IMAGE:latest\"" in gitlab_ci_text
+    assert "docker:27-dind" not in gitlab_ci_text
+    assert "DOCKER_HOST" not in gitlab_ci_text
     assert "if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'" in gitlab_ci_text
 
 
