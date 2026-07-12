@@ -7,7 +7,7 @@ build-container:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
   rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - when: never
   script:
     - /kaniko/executor
       --context "$CI_PROJECT_DIR"

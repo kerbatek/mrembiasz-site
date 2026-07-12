@@ -1,0 +1,10 @@
+domain_name = "mrembiasz.pl"
+aws_region  = "eu-central-1"
+
+alternate_domain_names = [
+  "www.mrembiasz.pl",
+]
+
+tags = {
+  Project = "mrembiasz-site"
+}
