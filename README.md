@@ -4,9 +4,30 @@ Very simple personal landing page for Mateusz Rembiasz.
 
 ## Files
 
-- `index.html` contains the page content.
-- `styles.css` contains the page styling.
+- `src/pages/index.astro` contains the page content.
+- `src/styles/global.css` contains the page styling.
+- `astro.config.mjs` contains the Astro build configuration.
 - `infra/aws-static-site` contains the AWS static hosting Terraform.
+
+## Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the local dev server:
+
+```bash
+npm run dev
+```
+
+Build the static production files:
+
+```bash
+npm run build
+```
 
 ## AWS static hosting
 
@@ -74,6 +95,10 @@ Deploy the current static files:
 scripts/deploy-static-site.sh
 ```
 
+The deploy script builds the Astro site and syncs `dist/` to S3.
+HTML is uploaded with `Cache-Control: public, max-age=60`; non-HTML build
+assets are uploaded with `Cache-Control: public, max-age=31536000, immutable`.
+
 ## Container
 
 Build the static Nginx image:
@@ -92,8 +117,5 @@ Then open `http://localhost:8080`.
 
 ## CI
 
-GitLab CI builds the container on the default branch and pushes two tags to the
-project Container Registry:
-
-- `$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA`
-- `$CI_REGISTRY_IMAGE:latest`
+The GitLab container build job is currently disabled while production deploys
+are handled manually through `scripts/deploy-static-site.sh`.

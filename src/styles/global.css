@@ -28,7 +28,50 @@ body {
   width: 100%;
   max-width: 44rem;
   margin: 0 auto;
-  padding: 4rem 2rem;
+  padding: 2.5rem 2rem;
+}
+
+.index-page .bio,
+.index-page .section {
+  margin-bottom: 1.25rem;
+}
+
+.index-page .section-label {
+  margin-bottom: 0.55rem;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  width: fit-content;
+  margin-bottom: 1.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.2rem;
+  background: #1f1f23;
+}
+
+.nav a {
+  border-radius: 4px;
+  padding: 0.35rem 0.55rem;
+  color: var(--muted);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.nav a:hover,
+.nav a[aria-current="page"] {
+  background: var(--hover-bg);
+  color: var(--text);
+}
+
+.nav a:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 4px;
 }
 
 .name {
@@ -77,6 +120,43 @@ body {
   font-size: 0.83rem;
   font-weight: 300;
   line-height: 1.65;
+}
+
+.paragraph-stack {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.learning-list,
+.technology-groups {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.learning-item,
+.technology-group {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.45fr) 1fr;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.learning-item h2,
+.technology-group h2 {
+  color: var(--text);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  font-size: 0.83rem;
+  font-weight: 400;
+}
+
+.learning-item p,
+.technology-group p {
+  color: var(--muted);
+  font-size: 0.83rem;
+  font-weight: 300;
+  line-height: 1.5;
 }
 
 .tags {
@@ -129,6 +209,27 @@ body {
   font-weight: 400;
 }
 
+.project h2 a,
+.project-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.project h2 a:hover,
+.project-link:hover {
+  color: var(--text);
+}
+
+.project-link {
+  display: inline-flex;
+  margin-top: 0.45rem;
+  color: var(--muted);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  font-size: 0.69rem;
+}
+
 .project span {
   flex-shrink: 0;
   color: var(--muted);
@@ -144,6 +245,48 @@ body {
   font-size: 0.83rem;
   font-weight: 300;
   line-height: 1.5;
+}
+
+.case-study-header {
+  margin-bottom: 2rem;
+}
+
+.case-study .section {
+  margin-bottom: 2rem;
+}
+
+.decision-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.decision-item h2 {
+  margin-bottom: 0.25rem;
+  color: var(--text);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  font-size: 0.83rem;
+  font-weight: 400;
+}
+
+.decision-item p,
+.ordered-list,
+.plain-list {
+  color: var(--muted);
+  font-size: 0.83rem;
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+.ordered-list,
+.plain-list {
+  padding-left: 1.15rem;
+}
+
+.ordered-list li,
+.plain-list li {
+  margin-bottom: 0.35rem;
 }
 
 .social {
@@ -188,6 +331,12 @@ body {
 
   .project-header {
     display: block;
+  }
+
+  .learning-item,
+  .technology-group {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
   }
 
   .project span {

@@ -1,5 +1,8 @@
 .DS_Store
 .terraform/
+.astro/
+dist/
+node_modules/
 *.tfstate
 *.tfstate.*
 *.tfplan

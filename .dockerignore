@@ -1,5 +1,8 @@
 .git
 .DS_Store
+.astro
+dist
+node_modules
 docs
 tests
 README.md
