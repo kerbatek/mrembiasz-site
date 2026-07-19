@@ -2,6 +2,7 @@ frontend-tests:
   stage: test
   image: node:24-bookworm
   interruptible: true
+  coverage: '/All files\s+\|\s+([0-9.]+)\s+\|/'
   rules:
     - if: "$CI_COMMIT_BRANCH || $CI_COMMIT_TAG"
       when: on_success
@@ -21,6 +22,7 @@ backend-tests:
   stage: test
   image: python:3.14-slim
   interruptible: true
+  coverage: '/TOTAL\s+\d+\s+\d+\s+([0-9]+)%/'
   rules:
     - if: "$CI_COMMIT_BRANCH || $CI_COMMIT_TAG"
       when: on_success
@@ -28,6 +30,7 @@ backend-tests:
     - python -m pip install -r backend/requirements-dev.txt
   script:
     - coverage run -m xmlrunner discover tests/backend -o reports/backend
+    - coverage report
     - coverage xml -o reports/backend-coverage.xml
   artifacts:
     when: always
