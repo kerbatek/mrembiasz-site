@@ -30,6 +30,10 @@ test("listTodos loads todos from the API base and normalizes dates", async () =>
     {
       id: "task-1",
       title: "Pay invoice",
+      priority: 2,
+      status: "todo",
+      category: "finance",
+      description: "Check billing portal.",
       completed: false,
       createdAt: "2026-07-19T09:00:00.000Z",
       updatedAt: "2026-07-19T09:00:00.000Z",
@@ -44,6 +48,10 @@ test("listTodos loads todos from the API base and normalizes dates", async () =>
     {
       id: "task-1",
       title: "Pay invoice",
+      priority: 2,
+      status: "todo",
+      category: "finance",
+      description: "Check billing portal.",
       completed: false,
       createdAt: new Date("2026-07-19T09:00:00.000Z"),
       updatedAt: new Date("2026-07-19T09:00:00.000Z"),
@@ -55,6 +63,10 @@ test("createTodo posts a title and trims surrounding whitespace", async () => {
   const { calls, fetch } = mockFetch({
     id: "task-2",
     title: "Buy coffee",
+    priority: 0,
+    status: "todo",
+    category: "",
+    description: "",
     completed: false,
     createdAt: "2026-07-19T10:00:00.000Z",
     updatedAt: "2026-07-19T10:00:00.000Z",
@@ -77,6 +89,10 @@ test("updateTodo patches only provided fields", async () => {
   const { calls, fetch } = mockFetch({
     id: "task-1",
     title: "Pay invoice",
+    priority: 3,
+    status: "done",
+    category: "finance",
+    description: "",
     completed: true,
     createdAt: "2026-07-19T09:00:00.000Z",
     updatedAt: "2026-07-19T11:00:00.000Z",

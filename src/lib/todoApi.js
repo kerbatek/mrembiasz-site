@@ -7,6 +7,10 @@ function todoFromApi(todo) {
   return {
     id: String(todo.id),
     title: String(todo.title ?? ""),
+    priority: Number.isInteger(todo.priority) ? todo.priority : 0,
+    status: String(todo.status ?? (todo.completed ? "done" : "todo")),
+    category: String(todo.category ?? ""),
+    description: String(todo.description ?? ""),
     completed: Boolean(todo.completed),
     createdAt: todo.createdAt ? new Date(todo.createdAt) : null,
     updatedAt: todo.updatedAt ? new Date(todo.updatedAt) : null,
