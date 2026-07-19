@@ -1,6 +1,10 @@
 from unittest.mock import patch
 
-from tests.integration.todo_api_support import TodoApiDynamoDbTestCase, event, response_body
+from tests.integration.todo_api_support import (
+    TodoApiDynamoDbTestCase,
+    event,
+    response_body,
+)
 
 
 class TodoApiPlanningIntegrationTest(TodoApiDynamoDbTestCase):
@@ -57,7 +61,10 @@ class TodoApiPlanningIntegrationTest(TodoApiDynamoDbTestCase):
             [evening["id"], afternoon["id"], morning["id"]],
         )
         self.assertEqual(
-            [(todo["title"], todo["priority"], todo["status"], todo["category"]) for todo in listed],
+            [
+                (todo["title"], todo["priority"], todo["status"], todo["category"])
+                for todo in listed
+            ],
             [
                 ("Buy groceries", 3, "todo", "home"),
                 ("Prepare AWS notes", 6, "done", "learning"),

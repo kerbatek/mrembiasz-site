@@ -1,0 +1,17 @@
+{
+  "threshold": 2,
+  "minLines": 8,
+  "minTokens": 80,
+  "reporters": ["console"],
+  "formats": ["javascript", "typescript", "python", "html", "css", "terraform"],
+  "path": ["src", "backend", "tests", "infra"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/.astro/**",
+    "**/dist/**",
+    "**/.terraform/**",
+    "**/.venv/**",
+    "**/__pycache__/**",
+    "**/.cache/**"
+  ]
+}

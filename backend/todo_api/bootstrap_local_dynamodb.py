@@ -37,7 +37,9 @@ def ensure_table(endpoint_url, table_name):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Create the local Todo DynamoDB table.")
+    parser = argparse.ArgumentParser(
+        description="Create the local Todo DynamoDB table."
+    )
     parser.add_argument("--endpoint-url", default="http://127.0.0.1:8000")
     parser.add_argument("--table-name", default="personal-todos")
     args = parser.parse_args()

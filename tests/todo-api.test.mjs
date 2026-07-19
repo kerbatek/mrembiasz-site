@@ -40,7 +40,10 @@ test("listTodos loads todos from the API base and normalizes dates", async () =>
     },
   ]);
 
-  const todos = await listTodos({ apiBaseUrl: "https://api.example.com", fetch });
+  const todos = await listTodos({
+    apiBaseUrl: "https://api.example.com",
+    fetch,
+  });
 
   assert.equal(calls[0].url, "https://api.example.com/todos");
   assert.equal(calls[0].init.method, "GET");
@@ -82,7 +85,10 @@ test("listTodos applies defaults when API omits optional fields", async () => {
     },
   ]);
 
-  const todos = await listTodos({ apiBaseUrl: "https://api.example.com", fetch });
+  const todos = await listTodos({
+    apiBaseUrl: "https://api.example.com",
+    fetch,
+  });
 
   assert.deepEqual(todos, [
     {
@@ -281,7 +287,10 @@ test("deleteTodo accepts a 204 response without parsing JSON", async () => {
 });
 
 test("API helpers surface backend error messages", async () => {
-  const { fetch } = mockFetch({ message: "title is required" }, { ok: false, status: 400 });
+  const { fetch } = mockFetch(
+    { message: "title is required" },
+    { ok: false, status: 400 },
+  );
 
   await assert.rejects(
     createTodo({

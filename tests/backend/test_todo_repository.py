@@ -55,18 +55,25 @@ class TodoRepositoryTest(unittest.TestCase):
                 },
                 clear=True,
             ),
-            patch.dict("sys.modules", {"boto3": SimpleNamespace(resource=fake_resource_factory)}),
+            patch.dict(
+                "sys.modules",
+                {"boto3": SimpleNamespace(resource=fake_resource_factory)},
+            ),
         ):
             repository = DynamoDbTodoRepository.from_env()
 
         self.assertIsInstance(repository.table, FakeDynamoDbTable)
         self.assertEqual(fake_resource.table_name, "personal-todos")
-        self.assertEqual(calls, [("dynamodb", {"endpoint_url": "http://127.0.0.1:8000"})])
+        self.assertEqual(
+            calls, [("dynamodb", {"endpoint_url": "http://127.0.0.1:8000"})]
+        )
 
     def test_from_env_requires_table_name(self):
-        with patch.dict("os.environ", {}, clear=True):
-            with self.assertRaisesRegex(RuntimeError, "TODO_TABLE_NAME is required"):
-                DynamoDbTodoRepository.from_env()
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            self.assertRaisesRegex(RuntimeError, "TODO_TABLE_NAME is required"),
+        ):
+            DynamoDbTodoRepository.from_env()
 
     def test_list_todos_normalizes_legacy_items_and_sorts_newest_first(self):
         table = FakeDynamoDbTable(
@@ -106,7 +113,9 @@ class TodoRepositoryTest(unittest.TestCase):
 
         with (
             patch("backend.todo_api.repository.uuid4", return_value="generated-id"),
-            patch("backend.todo_api.repository._now", return_value="2026-07-19T10:00:00Z"),
+            patch(
+                "backend.todo_api.repository._now", return_value="2026-07-19T10:00:00Z"
+            ),
         ):
             todo = DynamoDbTodoRepository(table).create_todo(
                 {
@@ -140,7 +149,9 @@ class TodoRepositoryTest(unittest.TestCase):
             ]
         )
 
-        with patch("backend.todo_api.repository._now", return_value="2026-07-19T11:00:00Z"):
+        with patch(
+            "backend.todo_api.repository._now", return_value="2026-07-19T11:00:00Z"
+        ):
             todo = DynamoDbTodoRepository(table).update_todo(
                 "task-1",
                 {"priority": 5, "status": "done", "completed": True},

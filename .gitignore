@@ -5,6 +5,7 @@
 .astro/
 dist/
 node_modules/
+.cache/
 
 # Python backend artifacts
 __pycache__/
@@ -13,6 +14,7 @@ __pycache__/
 .coverage
 coverage.xml
 htmlcov/
+reports/
 .venv/
 venv/
 
