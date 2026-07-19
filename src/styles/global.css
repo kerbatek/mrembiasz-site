@@ -375,6 +375,35 @@ body {
   font-size: 0.72rem;
 }
 
+.todo-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 0.5rem;
+}
+
+.todo-auth-panel {
+  margin-bottom: 0.85rem;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  padding: 0.7rem 0.85rem;
+  color: #bfdbfe;
+  background: #182235;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  font-size: 0.72rem;
+}
+
+.todo-auth-panel[hidden] {
+  display: none;
+}
+
+.todo-auth-panel[data-tone="error"] {
+  color: #fecaca;
+  background: #301b1b;
+}
+
 .todo-panel {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -425,6 +454,7 @@ body {
 .todo-form button,
 .todo-delete,
 .todo-refresh,
+.todo-auth-button,
 .todo-filters button {
   border: 1px solid #52525b;
   border-radius: 6px;
@@ -447,12 +477,18 @@ body {
 .todo-form button:hover,
 .todo-delete:hover,
 .todo-refresh:hover,
+.todo-auth-button:hover,
 .todo-filters button:hover {
   border-color: #a1a1aa;
 }
 
 .todo-form[data-pending="true"] {
   opacity: 0.68;
+  pointer-events: none;
+}
+
+.todo-form[data-authenticated="false"] {
+  opacity: 0.58;
   pointer-events: none;
 }
 
@@ -475,10 +511,16 @@ body {
 }
 
 .todo-filters button,
-.todo-refresh {
+.todo-refresh,
+.todo-auth-button {
   min-height: 2rem;
   padding: 0 0.6rem;
   font-size: 0.7rem;
+}
+
+.todo-auth-button {
+  color: #bfdbfe;
+  background: #1e3a5f;
 }
 
 .todo-filters button {
@@ -598,7 +640,8 @@ body {
     flex-direction: column;
   }
 
-  .todo-count {
+  .todo-count,
+  .todo-header-actions {
     width: fit-content;
   }
 

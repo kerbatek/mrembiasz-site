@@ -25,7 +25,7 @@ class DynamoDbTodoRepository:
         return cls(boto3.resource("dynamodb", **resource_kwargs).Table(table_name))
 
     def list_todos(self):
-        response = self.table.scan(ConsistentRead=True)
+        response = self.table.scan()
         todos = [_todo_from_item(item) for item in response.get("Items", [])]
         return sorted(todos, key=lambda todo: todo["createdAt"], reverse=True)
 

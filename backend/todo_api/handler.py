@@ -8,6 +8,7 @@ from .repository import DynamoDbTodoRepository
 ALLOWED_METHODS = "GET,POST,PATCH,DELETE,OPTIONS"
 ALLOWED_HEADERS = "Content-Type,Authorization"
 TODO_STATUSES = ("todo", "in_progress", "done")
+_repository = None
 
 
 def create_handler(repository_factory=None):
@@ -16,51 +17,63 @@ def create_handler(repository_factory=None):
 
         method = _method_from_event(event)
         path = _path_from_event(event)
-
-        if method == "OPTIONS":
-            return _response(204)
-
-        if not _is_authorized(event):
-            return _json_response(401, {"message": "unauthorized"})
-
-        try:
-            repository = repository_factory() if repository_factory else DynamoDbTodoRepository.from_env()
-
-            if method == "GET" and path == "/todos":
-                return _json_response(200, repository.list_todos())
-
-            if method == "POST" and path == "/todos":
-                body = _json_body(event)
-                todo_data = _todo_data_from_body(body)
-                return _json_response(201, repository.create_todo(todo_data))
-
-            todo_id = _todo_id_from_path(path)
-            if todo_id and method == "PATCH":
-                body = _json_body(event)
-                changes = _changes_from_body(body)
-                todo = repository.update_todo(todo_id, changes)
-
-                if todo is None:
-                    return _json_response(404, {"message": "todo not found"})
-
-                return _json_response(200, todo)
-
-            if todo_id and method == "DELETE":
-                deleted = repository.delete_todo(todo_id)
-
-                if not deleted:
-                    return _json_response(404, {"message": "todo not found"})
-
-                return _response(204)
-
-            return _json_response(404, {"message": "route not found"})
-        except ValueError as error:
-            return _json_response(400, {"message": str(error)})
+        return _handle_request(event, method, path, repository_factory)
 
     return lambda_handler
 
 
 handler = create_handler()
+
+
+def _handle_request(event, method, path, repository_factory=None):
+    if method == "OPTIONS":
+        return _response(204)
+
+    if not _is_authorized(event):
+        return _json_response(401, {"message": "unauthorized"})
+
+    try:
+        repository = repository_factory() if repository_factory else _repository_from_env()
+
+        if method == "GET" and path == "/todos":
+            return _json_response(200, repository.list_todos())
+
+        if method == "POST" and path == "/todos":
+            body = _json_body(event)
+            todo_data = _todo_data_from_body(body)
+            return _json_response(201, repository.create_todo(todo_data))
+
+        todo_id = _todo_id_from_path(path)
+        if todo_id and method == "PATCH":
+            body = _json_body(event)
+            changes = _changes_from_body(body)
+            todo = repository.update_todo(todo_id, changes)
+
+            if todo is None:
+                return _json_response(404, {"message": "todo not found"})
+
+            return _json_response(200, todo)
+
+        if todo_id and method == "DELETE":
+            deleted = repository.delete_todo(todo_id)
+
+            if not deleted:
+                return _json_response(404, {"message": "todo not found"})
+
+            return _response(204)
+
+        return _json_response(404, {"message": "route not found"})
+    except ValueError as error:
+        return _json_response(400, {"message": str(error)})
+
+
+def _repository_from_env():
+    global _repository
+
+    if _repository is None:
+        _repository = DynamoDbTodoRepository.from_env()
+
+    return _repository
 
 
 def _method_from_event(event):

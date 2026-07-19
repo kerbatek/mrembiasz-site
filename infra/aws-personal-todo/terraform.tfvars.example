@@ -1,0 +1,31 @@
+aws_region  = "eu-central-1"
+name_prefix = "mrembiasz-todo"
+
+allowed_origins = [
+  "https://mrembiasz.pl",
+  "https://www.mrembiasz.pl",
+  "http://localhost:4321",
+  "http://127.0.0.1:4321",
+]
+
+cognito_callback_urls = [
+  "https://mrembiasz.pl/todo/",
+  "https://www.mrembiasz.pl/todo/",
+  "http://localhost:4321/todo/",
+  "http://127.0.0.1:4321/todo/",
+]
+
+cognito_logout_urls = [
+  "https://mrembiasz.pl/todo/",
+  "https://www.mrembiasz.pl/todo/",
+  "http://localhost:4321/todo/",
+  "http://127.0.0.1:4321/todo/",
+]
+
+# Optional. Must be globally unique in eu-central-1.
+# cognito_domain_prefix = "mrembiasz-todo"
+
+tags = {
+  Project = "mrembiasz-site"
+  App     = "personal-todo"
+}

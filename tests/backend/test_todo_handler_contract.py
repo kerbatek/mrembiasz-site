@@ -4,6 +4,7 @@ import os
 import unittest
 from unittest.mock import patch
 
+import backend.todo_api.handler as todo_handler
 from backend.todo_api.handler import create_handler
 
 
@@ -85,6 +86,18 @@ class TodoHandlerContractTest(unittest.TestCase):
         self.assertEqual(response["headers"]["Content-Type"], "application/json")
         self.assertEqual(response["headers"]["Access-Control-Allow-Origin"], "*")
         self.assertEqual(response_body(response)[0]["title"], "Pay invoice")
+
+    def test_default_handler_reuses_repository_between_warm_invocations(self):
+        todo_handler._repository = None
+        repository = InMemoryTodoRepository()
+
+        with patch.object(todo_handler.DynamoDbTodoRepository, "from_env", return_value=repository) as from_env:
+            handler = create_handler()
+            self.assertEqual(handler(event("GET", "/todos"), None)["statusCode"], 200)
+            self.assertEqual(handler(event("GET", "/todos"), None)["statusCode"], 200)
+
+        self.assertEqual(from_env.call_count, 1)
+        todo_handler._repository = None
 
     def test_auth_is_not_required_when_cognito_mode_is_not_enabled(self):
         response = self.handler(event("GET", "/todos"), None)
