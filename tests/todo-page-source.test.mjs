@@ -32,3 +32,15 @@ test("todo item template exposes editable metadata fields", () => {
     assert.match(source, new RegExp(marker));
   }
 });
+
+test("todo page exposes Cognito auth controls", () => {
+  for (const marker of [
+    "data-auth-panel",
+    "data-login",
+    "data-logout",
+    "PUBLIC_TODO_COGNITO_DOMAIN",
+    "PUBLIC_TODO_COGNITO_CLIENT_ID",
+  ]) {
+    assert.match(source, new RegExp(marker));
+  }
+});

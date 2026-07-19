@@ -95,7 +95,7 @@ class TodoRepositoryTest(unittest.TestCase):
         todos = DynamoDbTodoRepository(table).list_todos()
 
         self.assertEqual([todo["id"] for todo in todos], ["newer", "older"])
-        self.assertEqual(table.scan_kwargs, [{"ConsistentRead": True}])
+        self.assertEqual(table.scan_kwargs, [{}])
         self.assertEqual(todos[1]["priority"], 0)
         self.assertEqual(todos[1]["status"], "todo")
         self.assertEqual(todos[1]["category"], "")
