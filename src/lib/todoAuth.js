@@ -52,10 +52,7 @@ function requireAuthConfig({ domain, clientId, redirectUri }) {
   }
 }
 
-export function getStoredTodoSession({
-  storage,
-  now = () => Date.now(),
-} = {}) {
+export function getStoredTodoSession({ storage, now = () => Date.now() } = {}) {
   const sessionStorage = storageOrDefault(storage);
   const accessToken = sessionStorage.getItem(ACCESS_TOKEN_KEY);
 
@@ -170,7 +167,9 @@ export async function completeTodoLogin({
   });
 
   if (!response.ok) {
-    throw new Error(`Cognito token exchange failed with status ${response.status}`);
+    throw new Error(
+      `Cognito token exchange failed with status ${response.status}`,
+    );
   }
 
   const token = await response.json();
@@ -190,12 +189,7 @@ export async function completeTodoLogin({
   return getStoredTodoSession({ storage: sessionStorage, now });
 }
 
-export function todoLogoutUrl({
-  domain,
-  clientId,
-  logoutUri,
-  storage,
-}) {
+export function todoLogoutUrl({ domain, clientId, logoutUri, storage }) {
   requireAuthConfig({ domain, clientId, redirectUri: logoutUri });
   clearTodoSession({ storage });
 

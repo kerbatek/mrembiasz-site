@@ -1,4 +1,8 @@
-from tests.integration.todo_api_support import TodoApiDynamoDbTestCase, event, response_body
+from tests.integration.todo_api_support import (
+    TodoApiDynamoDbTestCase,
+    event,
+    response_body,
+)
 
 
 class TodoApiValidationIntegrationTest(TodoApiDynamoDbTestCase):

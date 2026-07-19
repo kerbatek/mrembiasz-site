@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const source = await readFile(new URL("../src/pages/todo.astro", import.meta.url), "utf8");
+const source = await readFile(
+  new URL("../src/pages/todo.astro", import.meta.url),
+  "utf8",
+);
 
 test("todo page exposes create controls for the full todo model", () => {
   for (const marker of [
@@ -17,7 +20,12 @@ test("todo page exposes create controls for the full todo model", () => {
 });
 
 test("todo page supports status-based filters", () => {
-  for (const filter of ['data-filter="all"', 'data-filter="todo"', 'data-filter="in_progress"', 'data-filter="done"']) {
+  for (const filter of [
+    'data-filter="all"',
+    'data-filter="todo"',
+    'data-filter="in_progress"',
+    'data-filter="done"',
+  ]) {
     assert.match(source, new RegExp(filter));
   }
 });

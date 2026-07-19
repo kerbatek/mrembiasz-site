@@ -56,13 +56,19 @@ test("beginTodoLogin builds Cognito Hosted UI URL and stores PKCE verifier", asy
   assert.equal(url.origin, "https://auth.example.com");
   assert.equal(url.pathname, "/oauth2/authorize");
   assert.equal(url.searchParams.get("client_id"), "client-123");
-  assert.equal(url.searchParams.get("redirect_uri"), "https://site.example.com/todo/");
+  assert.equal(
+    url.searchParams.get("redirect_uri"),
+    "https://site.example.com/todo/",
+  );
   assert.equal(url.searchParams.get("response_type"), "code");
   assert.equal(url.searchParams.get("scope"), "openid email profile");
   assert.equal(url.searchParams.get("code_challenge_method"), "S256");
   assert.ok(url.searchParams.get("code_challenge"));
   assert.ok(storage.getItem("todoPkceVerifier"));
-  assert.equal(storage.getItem("todoOAuthState"), url.searchParams.get("state"));
+  assert.equal(
+    storage.getItem("todoOAuthState"),
+    url.searchParams.get("state"),
+  );
 });
 
 test("completeTodoLogin exchanges redirect code and stores access token session", async () => {
@@ -120,7 +126,8 @@ test("completeTodoLogin rejects redirects with mismatched state", async () => {
         todoPkceVerifier: "verifier",
         todoOAuthState: "expected-state",
       }),
-      currentUrl: "https://site.example.com/todo/?code=code-123&state=wrong-state",
+      currentUrl:
+        "https://site.example.com/todo/?code=code-123&state=wrong-state",
     }),
     /OAuth state did not match/,
   );
@@ -170,5 +177,8 @@ test("todoLogoutUrl clears local session and builds hosted UI logout URL", () =>
   });
 
   assert.equal(storage.getItem("todoAccessToken"), null);
-  assert.equal(url.toString(), "https://auth.example.com/logout?client_id=client-123&logout_uri=https%3A%2F%2Fsite.example.com%2Ftodo%2F");
+  assert.equal(
+    url.toString(),
+    "https://auth.example.com/logout?client_id=client-123&logout_uri=https%3A%2F%2Fsite.example.com%2Ftodo%2F",
+  );
 });

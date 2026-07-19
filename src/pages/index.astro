@@ -157,37 +157,31 @@ const socialLinks = [
               <article class="project">
                 <div class="project-header">
                   <h2>
-                    {
-                      project.href ? (
-                        <a href={project.href}>{project.title}</a>
-                      ) : (
-                        project.title
-                      )
-                    }
+                    {project.href ? (
+                      <a href={project.href}>{project.title}</a>
+                    ) : (
+                      project.title
+                    )}
                   </h2>
                   <span>{project.stack}</span>
                 </div>
                 <p>{project.description}</p>
                 <div class="project-links">
-                  {
-                    project.repositoryHref && (
-                      <a
-                        class="project-link"
-                        href={project.repositoryHref}
-                        rel="noopener noreferrer"
-                        target="_blank"
-                      >
-                        GitHub
-                      </a>
-                    )
-                  }
-                  {
-                    project.href && (
-                      <a class="project-link" href={project.href}>
-                        Read case study
-                      </a>
-                    )
-                  }
+                  {project.repositoryHref && (
+                    <a
+                      class="project-link"
+                      href={project.repositoryHref}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      GitHub
+                    </a>
+                  )}
+                  {project.href && (
+                    <a class="project-link" href={project.href}>
+                      Read case study
+                    </a>
+                  )}
                 </div>
               </article>
             ))
@@ -220,11 +214,17 @@ const socialLinks = [
           socialLinks.map((link) => (
             <a
               href={link.href}
-              rel={link.href.startsWith("https://") ? "noopener noreferrer" : undefined}
+              rel={
+                link.href.startsWith("https://")
+                  ? "noopener noreferrer"
+                  : undefined
+              }
               target={link.href.startsWith("https://") ? "_blank" : undefined}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
-                {link.paths.map((path) => <path d={path} />)}
+                {link.paths.map((path) => (
+                  <path d={path} />
+                ))}
               </svg>
               {link.label}
             </a>

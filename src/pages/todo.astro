@@ -59,7 +59,12 @@ import "../styles/global.css";
             aria-label="Priority"
           />
           <label class="sr-only" for="todo-status">Status</label>
-          <select id="todo-status" data-status-input name="status" aria-label="Status">
+          <select
+            id="todo-status"
+            data-status-input
+            name="status"
+            aria-label="Status"
+          >
             <option value="todo">Todo</option>
             <option value="in_progress">In progress</option>
             <option value="done">Done</option>
@@ -80,9 +85,9 @@ import "../styles/global.css";
             name="description"
             rows="2"
             maxlength="500"
-            placeholder="Description"
-          ></textarea>
-          <button type="submit" title="Add task" aria-label="Add task">+</button>
+            placeholder="Description"></textarea>
+          <button type="submit" title="Add task" aria-label="Add task">+</button
+          >
         </form>
 
         <div class="todo-toolbar">
@@ -93,7 +98,11 @@ import "../styles/global.css";
             <button type="button" data-filter="todo" aria-selected="false">
               Todo
             </button>
-            <button type="button" data-filter="in_progress" aria-selected="false">
+            <button
+              type="button"
+              data-filter="in_progress"
+              aria-selected="false"
+            >
               In progress
             </button>
             <button type="button" data-filter="done" aria-selected="false">
@@ -133,7 +142,13 @@ import "../styles/global.css";
           <textarea data-edit-description rows="2" maxlength="500"></textarea>
           <button type="submit" class="todo-save">Save</button>
         </form>
-        <button type="button" class="todo-delete" data-delete title="Delete task" aria-label="Delete task">
+        <button
+          type="button"
+          class="todo-delete"
+          data-delete
+          title="Delete task"
+          aria-label="Delete task"
+        >
           x
         </button>
       </li>
@@ -163,7 +178,9 @@ import "../styles/global.css";
       const priorityInput = document.querySelector("[data-priority-input]");
       const statusInput = document.querySelector("[data-status-input]");
       const categoryInput = document.querySelector("[data-category-input]");
-      const descriptionInput = document.querySelector("[data-description-input]");
+      const descriptionInput = document.querySelector(
+        "[data-description-input]",
+      );
       const list = document.querySelector("[data-list]");
       const status = document.querySelector("[data-status]");
       const count = document.querySelector("[data-count]");
@@ -181,7 +198,8 @@ import "../styles/global.css";
         logoutUri:
           import.meta.env.PUBLIC_TODO_COGNITO_LOGOUT_URI ||
           `${window.location.origin}/todo/`,
-        scopes: import.meta.env.PUBLIC_TODO_COGNITO_SCOPES || "openid email profile",
+        scopes:
+          import.meta.env.PUBLIC_TODO_COGNITO_SCOPES || "openid email profile",
       };
 
       let todos = [];
@@ -304,20 +322,25 @@ import "../styles/global.css";
 
           editForm.addEventListener("submit", (event) => {
             event.preventDefault();
-            updateExistingTodo(todo, todoChangesFromEditForm({
-              editTitle,
-              editPriority,
-              editStatus,
-              editCategory,
-              editDescription,
-            }));
+            updateExistingTodo(
+              todo,
+              todoChangesFromEditForm({
+                editTitle,
+                editPriority,
+                editStatus,
+                editCategory,
+                editDescription,
+              }),
+            );
           });
 
           editTitle.addEventListener("blur", () => {
             updateExistingTodo(todo, { title: editTitle.value.trim() });
           });
           editPriority.addEventListener("change", () => {
-            updateExistingTodo(todo, { priority: integerFromInput(editPriority) });
+            updateExistingTodo(todo, {
+              priority: integerFromInput(editPriority),
+            });
           });
           editStatus.addEventListener("change", () => {
             updateExistingTodo(todo, { status: editStatus.value });
@@ -326,7 +349,9 @@ import "../styles/global.css";
             updateExistingTodo(todo, { category: editCategory.value.trim() });
           });
           editDescription.addEventListener("blur", () => {
-            updateExistingTodo(todo, { description: editDescription.value.trim() });
+            updateExistingTodo(todo, {
+              description: editDescription.value.trim(),
+            });
           });
 
           deleteButton.addEventListener("click", () => {
@@ -476,7 +501,11 @@ import "../styles/global.css";
       async function removeTodo(todo) {
         await withPending(todo.id, async () => {
           try {
-            await deleteTodo({ apiBaseUrl, accessToken: accessToken(), id: todo.id });
+            await deleteTodo({
+              apiBaseUrl,
+              accessToken: accessToken(),
+              id: todo.id,
+            });
             todos = todos.filter((item) => item.id !== todo.id);
             setStatus("");
           } catch (error) {
@@ -511,7 +540,7 @@ import "../styles/global.css";
 
         if (hasCognitoConfig()) {
           try {
-            authSession = await completeTodoLogin(authConfig) || authSession;
+            authSession = (await completeTodoLogin(authConfig)) || authSession;
           } catch (error) {
             clearTodoSession();
             authSession = null;

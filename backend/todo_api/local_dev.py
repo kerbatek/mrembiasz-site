@@ -48,10 +48,7 @@ class InMemoryTodoRepository:
 
 
 def build_event(method, path, body=b"", headers=None):
-    normalized_headers = {
-        key.lower(): value
-        for key, value in (headers or {}).items()
-    }
+    normalized_headers = {key.lower(): value for key, value in (headers or {}).items()}
 
     return {
         "requestContext": {

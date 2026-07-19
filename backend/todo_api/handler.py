@@ -33,7 +33,9 @@ def _handle_request(event, method, path, repository_factory=None):
         return _json_response(401, {"message": "unauthorized"})
 
     try:
-        repository = repository_factory() if repository_factory else _repository_from_env()
+        repository = (
+            repository_factory() if repository_factory else _repository_from_env()
+        )
 
         if method == "GET" and path == "/todos":
             return _json_response(200, repository.list_todos())
