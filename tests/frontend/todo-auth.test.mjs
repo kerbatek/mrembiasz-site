@@ -7,7 +7,7 @@ import {
   completeTodoLogin,
   getStoredTodoSession,
   todoLogoutUrl,
-} from "../src/lib/todoAuth.js";
+} from "../../src/lib/todoAuth.js";
 
 function memoryStorage(initial = {}) {
   const values = new Map(Object.entries(initial));

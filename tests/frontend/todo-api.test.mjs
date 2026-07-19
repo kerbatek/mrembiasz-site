@@ -6,7 +6,7 @@ import {
   deleteTodo,
   listTodos,
   updateTodo,
-} from "../src/lib/todoApi.js";
+} from "../../src/lib/todoApi.js";
 
 function mockFetch(responseBody, options = {}) {
   const calls = [];

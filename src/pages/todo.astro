@@ -1,6 +1,7 @@
 ---
 import PrimaryNav from "../components/PrimaryNav.astro";
 import "../styles/global.css";
+import "../styles/todo.css";
 ---
 
 <!doctype html>
@@ -82,8 +83,9 @@ import "../styles/global.css";
           <textarea
             id="todo-description"
             data-description-input
+            data-autosize-textarea
             name="description"
-            rows="2"
+            rows="1"
             maxlength="500"
             placeholder="Description"></textarea>
           <button type="submit" title="Add task" aria-label="Add task">+</button
@@ -93,7 +95,7 @@ import "../styles/global.css";
         <div class="todo-toolbar">
           <div class="todo-filters" role="tablist" aria-label="Task filters">
             <button type="button" data-filter="all" aria-selected="true">
-              All
+              All (not done)
             </button>
             <button type="button" data-filter="todo" aria-selected="false">
               Todo
@@ -125,7 +127,7 @@ import "../styles/global.css";
 
     <template data-item-template>
       <li class="todo-item">
-        <form class="todo-edit" data-edit-form>
+        <div class="todo-edit">
           <label class="sr-only">Task title</label>
           <input data-edit-title type="text" maxlength="160" />
           <label class="sr-only">Priority</label>
@@ -139,9 +141,12 @@ import "../styles/global.css";
           <label class="sr-only">Category</label>
           <input data-edit-category type="text" maxlength="80" />
           <label class="sr-only">Description</label>
-          <textarea data-edit-description rows="2" maxlength="500"></textarea>
-          <button type="submit" class="todo-save">Save</button>
-        </form>
+          <textarea
+            data-edit-description
+            data-autosize-textarea
+            rows="1"
+            maxlength="500"></textarea>
+        </div>
         <button
           type="button"
           class="todo-delete"

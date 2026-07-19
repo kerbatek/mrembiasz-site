@@ -31,14 +31,6 @@ type TodoSession = {
   refreshToken?: string;
   expiresAt?: number;
 };
-type TodoEditControls = {
-  editTitle: HTMLInputElement;
-  editPriority: HTMLInputElement;
-  editStatus: HTMLSelectElement;
-  editCategory: HTMLInputElement;
-  editDescription: HTMLTextAreaElement;
-};
-
 function requireElement<T extends Element>(
   parent: ParentNode,
   selector: string,
@@ -148,6 +140,7 @@ const authConfig = {
     `${window.location.origin}/todo/`,
   scopes: import.meta.env.PUBLIC_TODO_COGNITO_SCOPES || "openid email profile",
 };
+const previewSampleEnabled = import.meta.env.PUBLIC_TODO_PREVIEW_SAMPLE === "1";
 
 let todos: Todo[] = [];
 let activeFilter: TodoFilter = "all";
@@ -176,6 +169,17 @@ function renderAuth(): void {
   const configured = hasCognitoConfig();
   const authenticated = isAuthenticated();
 
+  if (previewSampleEnabled) {
+    loginButton.hidden = true;
+    logoutButton.hidden = true;
+    form.dataset.authenticated = "false";
+    refreshButton.disabled = true;
+    authPanel.hidden = false;
+    authPanel.textContent = "Preview sample data.";
+    authPanel.dataset.tone = "neutral";
+    return;
+  }
+
   loginButton.hidden = authenticated || !configured;
   logoutButton.hidden = !authenticated || !configured;
   form.dataset.authenticated = String(authenticated);
@@ -196,11 +200,29 @@ function renderAuth(): void {
 }
 
 function filteredTodos(): Todo[] {
-  if (activeFilter !== "all") {
-    return todos.filter((todo) => todo.status === activeFilter);
+  if (activeFilter === "all") {
+    return sortTodosByPriority(todos.filter((todo) => !isDoneTodo(todo)));
   }
 
-  return todos;
+  return sortTodosByPriority(
+    todos.filter((todo) => todo.status === activeFilter),
+  );
+}
+
+function sortTodosByPriority(items: Todo[]): Todo[] {
+  return [...items].sort((left, right) => {
+    const doneOrder = Number(isDoneTodo(left)) - Number(isDoneTodo(right));
+
+    if (doneOrder !== 0) {
+      return doneOrder;
+    }
+
+    return right.priority - left.priority;
+  });
+}
+
+function isDoneTodo(todo: Todo): boolean {
+  return todo.status === "done" || todo.completed;
 }
 
 function setStatus(message: string, tone: StatusTone = "neutral"): void {
@@ -210,7 +232,7 @@ function setStatus(message: string, tone: StatusTone = "neutral"): void {
 }
 
 function renderCount(): void {
-  const openCount = todos.filter((todo) => todo.status !== "done").length;
+  const openCount = todos.filter((todo) => !isDoneTodo(todo)).length;
   count.textContent = `${openCount} open`;
 }
 
@@ -237,7 +259,6 @@ function renderTodos(): void {
   for (const todo of visibleTodos) {
     const node = itemTemplate.content.cloneNode(true) as DocumentFragment;
     const item = requireElement(node, ".todo-item", HTMLElement);
-    const editForm = requireElement(node, "[data-edit-form]", HTMLFormElement);
     const editTitle = requireElement(
       node,
       "[data-edit-title]",
@@ -268,17 +289,16 @@ function renderTodos(): void {
       "[data-delete]",
       HTMLButtonElement,
     );
-    const saveButton = requireElement(node, ".todo-save", HTMLButtonElement);
     const editControls = [
       editTitle,
       editPriority,
       editStatus,
       editCategory,
       editDescription,
-      saveButton,
     ];
+    const readonly = pendingIds.has(todo.id) || previewSampleEnabled;
 
-    item.dataset.completed = String(todo.completed);
+    item.dataset.completed = String(isDoneTodo(todo));
     item.dataset.status = todo.status;
     item.dataset.pending = String(pendingIds.has(todo.id));
     editTitle.value = todo.title;
@@ -287,23 +307,9 @@ function renderTodos(): void {
     editCategory.value = todo.category;
     editDescription.value = todo.description;
     editControls.forEach((control) => {
-      control.disabled = pendingIds.has(todo.id);
+      control.disabled = readonly;
     });
-    deleteButton.disabled = pendingIds.has(todo.id);
-
-    editForm.addEventListener("submit", (event: SubmitEvent) => {
-      event.preventDefault();
-      updateExistingTodo(
-        todo,
-        todoChangesFromEditForm({
-          editTitle,
-          editPriority,
-          editStatus,
-          editCategory,
-          editDescription,
-        }),
-      );
-    });
+    deleteButton.disabled = readonly;
 
     editTitle.addEventListener("blur", () => {
       updateExistingTodo(todo, { title: editTitle.value.trim() });
@@ -326,12 +332,16 @@ function renderTodos(): void {
         description: editDescription.value.trim(),
       });
     });
+    editDescription.addEventListener("input", () => {
+      autosizeTextarea(editDescription);
+    });
 
     deleteButton.addEventListener("click", () => {
       removeTodo(todo);
     });
 
     list.append(node);
+    autosizeTextarea(editDescription);
   }
 
   renderCount();
@@ -354,6 +364,14 @@ async function withPending(
 }
 
 async function loadTodos(): Promise<void> {
+  if (previewSampleEnabled) {
+    todos = [previewSampleTodo()];
+    setStatus("");
+    renderTodos();
+    renderAuth();
+    return;
+  }
+
   if (!isAuthenticated()) {
     todos = [];
     setStatus("");
@@ -384,25 +402,37 @@ async function loadTodos(): Promise<void> {
   renderTodos();
 }
 
+function previewSampleTodo(): Todo {
+  const timestamp = new Date("2026-07-19T12:00:00.000Z");
+
+  return {
+    id: "preview-sample-task",
+    title: "Preview deployment smoke test",
+    priority: 1,
+    status: "in_progress",
+    category: "Preview",
+    description: "This task is injected only by npm run preview.",
+    completed: false,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
 function integerFromInput(input: HTMLInputElement): number {
   const value = Number.parseInt(input.value, 10);
   return Number.isNaN(value) ? 0 : value;
 }
 
-function todoChangesFromEditForm({
-  editTitle,
-  editPriority,
-  editStatus,
-  editCategory,
-  editDescription,
-}: TodoEditControls): TodoChanges {
-  return {
-    title: editTitle.value.trim(),
-    priority: integerFromInput(editPriority),
-    status: todoStatusFromValue(editStatus.value),
-    category: editCategory.value.trim(),
-    description: editDescription.value.trim(),
-  };
+function autosizeTextarea(textarea: HTMLTextAreaElement): void {
+  textarea.style.height = "auto";
+  textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
+function bindAutosizeTextarea(textarea: HTMLTextAreaElement): void {
+  autosizeTextarea(textarea);
+  textarea.addEventListener("input", () => {
+    autosizeTextarea(textarea);
+  });
 }
 
 function changedFields(todo: Todo, changes: TodoChanges): TodoChanges {
@@ -418,6 +448,27 @@ function changedFields(todo: Todo, changes: TodoChanges): TodoChanges {
     changes.description,
   );
   return changed;
+}
+
+function todoWithChanges(todo: Todo, changes: TodoChanges): Todo {
+  const status = changes.status ?? todo.status;
+
+  return {
+    ...todo,
+    ...changes,
+    status,
+    completed: status === "done",
+  };
+}
+
+function applyLocalTodoChanges(todo: Todo, changes: TodoChanges): void {
+  todos = todos.map((item) =>
+    item.id === todo.id ? todoWithChanges(item, changes) : item,
+  );
+}
+
+function restoreLocalTodo(todo: Todo): void {
+  todos = todos.map((item) => (item.id === todo.id ? todo : item));
 }
 
 function copyChangedTextField(
@@ -491,6 +542,7 @@ async function addTodo(): Promise<void> {
     statusInput.value = "todo";
     categoryInput.value = "";
     descriptionInput.value = "";
+    autosizeTextarea(descriptionInput);
     setStatus("");
   } catch (error) {
     setStatus(errorMessage(error, "Could not add task"), "error");
@@ -516,6 +568,8 @@ async function updateExistingTodo(
     return;
   }
 
+  applyLocalTodoChanges(todo, normalizedChanges);
+
   await withPending(todo.id, async () => {
     try {
       const updated = todoFromApi(
@@ -529,6 +583,7 @@ async function updateExistingTodo(
       todos = todos.map((item) => (item.id === todo.id ? updated : item));
       setStatus("");
     } catch (error) {
+      restoreLocalTodo(todo);
       setStatus(errorMessage(error, "Could not update task"), "error");
     }
   });
@@ -556,6 +611,7 @@ form.addEventListener("submit", (event: SubmitEvent) => {
 });
 
 refreshButton.addEventListener("click", loadTodos);
+bindAutosizeTextarea(descriptionInput);
 loginButton.addEventListener("click", () => {
   beginTodoLogin({
     ...authConfig,

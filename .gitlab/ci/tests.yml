@@ -18,6 +18,22 @@ frontend-tests:
         coverage_format: cobertura
         path: reports/frontend-coverage/cobertura-coverage.xml
 
+platform-tests:
+  stage: test
+  image: node:24-bookworm
+  interruptible: true
+  rules:
+    - if: "$CI_COMMIT_BRANCH || $CI_COMMIT_TAG"
+      when: on_success
+  before_script:
+    - npm ci
+  script:
+    - npm run test:platform:ci
+  artifacts:
+    when: always
+    reports:
+      junit: reports/platform-junit.xml
+
 backend-tests:
   stage: test
   image: python:3.14-slim
