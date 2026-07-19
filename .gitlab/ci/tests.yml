@@ -24,6 +24,8 @@ integration-tests:
   stage: test
   image: python:3.14-slim
   interruptible: true
+  needs:
+    - backend-tests
   services:
     - name: amazon/dynamodb-local:2.6.1
       alias: dynamodb-local

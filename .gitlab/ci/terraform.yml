@@ -15,12 +15,16 @@ terraform-fmt:
 
 terraform-validate-static-site:
   extends: .terraform-job
+  needs:
+    - terraform-fmt
   script:
     - terraform -chdir=infra/aws-static-site init -backend=false
     - terraform -chdir=infra/aws-static-site validate
 
 terraform-validate-personal-todo:
   extends: .terraform-job
+  needs:
+    - terraform-fmt
   script:
     - terraform -chdir=infra/aws-personal-todo init -backend=false
     - terraform -chdir=infra/aws-personal-todo validate
