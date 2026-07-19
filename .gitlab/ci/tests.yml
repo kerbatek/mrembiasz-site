@@ -19,3 +19,26 @@ backend-tests:
       when: on_success
   script:
     - python -m unittest discover tests/backend
+
+integration-tests:
+  stage: test
+  image: python:3.14-slim
+  interruptible: true
+  services:
+    - name: amazon/dynamodb-local:2.6.1
+      alias: dynamodb-local
+      command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+  variables:
+    RUN_INTEGRATION_TESTS: "1"
+    TODO_TABLE_NAME: "personal-todos"
+    TODO_DYNAMODB_ENDPOINT: "http://dynamodb-local:8000"
+    AWS_ACCESS_KEY_ID: "local"
+    AWS_SECRET_ACCESS_KEY: "local"
+    AWS_DEFAULT_REGION: "us-east-1"
+  rules:
+    - if: '$CI_COMMIT_BRANCH || $CI_COMMIT_TAG'
+      when: on_success
+  before_script:
+    - python -m pip install -r backend/requirements.txt
+  script:
+    - python -m unittest discover tests/integration
