@@ -64,46 +64,53 @@ def build_event(method, path, body=b"", headers=None):
     }
 
 
+class TodoDevRequestHandler(BaseHTTPRequestHandler):
+    lambda_handler = None
+
+    def do_GET(self):
+        self._handle_request()
+
+    def do_POST(self):
+        self._handle_request()
+
+    def do_PATCH(self):
+        self._handle_request()
+
+    def do_DELETE(self):
+        self._handle_request()
+
+    def do_OPTIONS(self):
+        self._handle_request()
+
+    def log_message(self, format, *args):
+        return
+
+    def _handle_request(self):
+        body = self.rfile.read(_content_length(self.headers))
+        event = build_event(
+            method=self.command,
+            path=self.path.split("?", 1)[0],
+            body=body,
+            headers=dict(self.headers.items()),
+        )
+        response = self.lambda_handler(event, None)
+        self.send_response(response["statusCode"])
+
+        for key, value in response.get("headers", {}).items():
+            self.send_header(key, value)
+
+        self.end_headers()
+
+        if "body" in response:
+            self.wfile.write(response["body"].encode("utf-8"))
+
+
 def create_request_handler(lambda_handler):
-    class TodoDevRequestHandler(BaseHTTPRequestHandler):
-        def do_GET(self):
-            self._handle_request()
+    class ConfiguredTodoDevRequestHandler(TodoDevRequestHandler):
+        pass
 
-        def do_POST(self):
-            self._handle_request()
-
-        def do_PATCH(self):
-            self._handle_request()
-
-        def do_DELETE(self):
-            self._handle_request()
-
-        def do_OPTIONS(self):
-            self._handle_request()
-
-        def log_message(self, format, *args):
-            return
-
-        def _handle_request(self):
-            body = self.rfile.read(_content_length(self.headers))
-            event = build_event(
-                method=self.command,
-                path=self.path.split("?", 1)[0],
-                body=body,
-                headers=dict(self.headers.items()),
-            )
-            response = lambda_handler(event, None)
-            self.send_response(response["statusCode"])
-
-            for key, value in response.get("headers", {}).items():
-                self.send_header(key, value)
-
-            self.end_headers()
-
-            if "body" in response:
-                self.wfile.write(response["body"].encode("utf-8"))
-
-    return TodoDevRequestHandler
+    ConfiguredTodoDevRequestHandler.lambda_handler = staticmethod(lambda_handler)
+    return ConfiguredTodoDevRequestHandler
 
 
 def run(host="127.0.0.1", port=3000, storage="memory"):

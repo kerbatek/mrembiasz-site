@@ -1,0 +1,17 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+  "E",
+  "F",
+  "I",
+  "B",
+  "UP",
+  "SIM",
+  "C901",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 8

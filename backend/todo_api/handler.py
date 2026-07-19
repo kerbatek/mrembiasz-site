@@ -4,7 +4,6 @@ import os
 
 from .repository import DynamoDbTodoRepository
 
-
 ALLOWED_METHODS = "GET,POST,PATCH,DELETE,OPTIONS"
 ALLOWED_HEADERS = "Content-Type,Authorization"
 TODO_STATUSES = ("todo", "in_progress", "done")
@@ -36,37 +35,56 @@ def _handle_request(event, method, path, repository_factory=None):
         repository = (
             repository_factory() if repository_factory else _repository_from_env()
         )
+        collection_response = _collection_response(event, method, path, repository)
 
-        if method == "GET" and path == "/todos":
-            return _json_response(200, repository.list_todos())
-
-        if method == "POST" and path == "/todos":
-            body = _json_body(event)
-            todo_data = _todo_data_from_body(body)
-            return _json_response(201, repository.create_todo(todo_data))
+        if collection_response is not None:
+            return collection_response
 
         todo_id = _todo_id_from_path(path)
-        if todo_id and method == "PATCH":
-            body = _json_body(event)
-            changes = _changes_from_body(body)
-            todo = repository.update_todo(todo_id, changes)
 
-            if todo is None:
-                return _json_response(404, {"message": "todo not found"})
-
-            return _json_response(200, todo)
-
-        if todo_id and method == "DELETE":
-            deleted = repository.delete_todo(todo_id)
-
-            if not deleted:
-                return _json_response(404, {"message": "todo not found"})
-
-            return _response(204)
+        if todo_id:
+            return _item_response(event, method, repository, todo_id)
 
         return _json_response(404, {"message": "route not found"})
     except ValueError as error:
         return _json_response(400, {"message": str(error)})
+
+
+def _collection_response(event, method, path, repository):
+    if path != "/todos":
+        return None
+
+    if method == "GET":
+        return _json_response(200, repository.list_todos())
+
+    if method == "POST":
+        body = _json_body(event)
+        todo_data = _todo_data_from_body(body)
+        return _json_response(201, repository.create_todo(todo_data))
+
+    return None
+
+
+def _item_response(event, method, repository, todo_id):
+    if method == "PATCH":
+        body = _json_body(event)
+        changes = _changes_from_body(body)
+        todo = repository.update_todo(todo_id, changes)
+
+        if todo is None:
+            return _json_response(404, {"message": "todo not found"})
+
+        return _json_response(200, todo)
+
+    if method == "DELETE":
+        deleted = repository.delete_todo(todo_id)
+
+        if not deleted:
+            return _json_response(404, {"message": "todo not found"})
+
+        return _response(204)
+
+    return _json_response(404, {"message": "route not found"})
 
 
 def _repository_from_env():
@@ -190,35 +208,47 @@ def _todo_data_from_body(body):
 def _changes_from_body(body):
     changes = {}
 
+    _add_simple_changes(body, changes)
+    _add_status_change(body, changes)
+    _add_completed_change(body, changes)
+
+    if not changes:
+        raise ValueError("at least one editable field is required")
+
+    return changes
+
+
+def _add_simple_changes(body, changes):
     if "title" in body:
         changes["title"] = _title_from_body(body)
 
     if "priority" in body:
         changes["priority"] = _priority_from_body(body)
 
-    if "status" in body:
-        changes["status"] = _status_from_body(body)
-        changes["completed"] = changes["status"] == "done"
+    for field in ("category", "description"):
+        if field in body:
+            changes[field] = _string_field_from_body(body, field)
 
-    if "category" in body:
-        changes["category"] = _string_field_from_body(body, "category")
 
-    if "description" in body:
-        changes["description"] = _string_field_from_body(body, "description")
+def _add_status_change(body, changes):
+    if "status" not in body:
+        return
 
-    if "completed" in body:
-        if not isinstance(body["completed"], bool):
-            raise ValueError("completed must be a boolean")
+    changes["status"] = _status_from_body(body)
+    changes["completed"] = changes["status"] == "done"
 
-        changes["completed"] = body["completed"]
 
-        if "status" not in changes:
-            changes["status"] = "done" if body["completed"] else "todo"
+def _add_completed_change(body, changes):
+    if "completed" not in body:
+        return
 
-    if not changes:
-        raise ValueError("at least one editable field is required")
+    if not isinstance(body["completed"], bool):
+        raise ValueError("completed must be a boolean")
 
-    return changes
+    changes["completed"] = body["completed"]
+
+    if "status" not in changes:
+        changes["status"] = "done" if body["completed"] else "todo"
 
 
 def _priority_from_body(body, default=None):

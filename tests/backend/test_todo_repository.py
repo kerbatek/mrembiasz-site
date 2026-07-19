@@ -69,9 +69,11 @@ class TodoRepositoryTest(unittest.TestCase):
         )
 
     def test_from_env_requires_table_name(self):
-        with patch.dict("os.environ", {}, clear=True):
-            with self.assertRaisesRegex(RuntimeError, "TODO_TABLE_NAME is required"):
-                DynamoDbTodoRepository.from_env()
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            self.assertRaisesRegex(RuntimeError, "TODO_TABLE_NAME is required"),
+        ):
+            DynamoDbTodoRepository.from_env()
 
     def test_list_todos_normalizes_legacy_items_and_sorts_newest_first(self):
         table = FakeDynamoDbTable(
