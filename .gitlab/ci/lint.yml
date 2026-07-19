@@ -21,6 +21,7 @@ backend-lint:
     - python -m pip install -r backend/requirements-dev.txt
     - ruff check backend tests/backend tests/integration
     - ruff format --check backend tests/backend tests/integration
+    - bandit -r backend -x backend/tests,tests
 
 terraform-fmt:
   stage: lint
@@ -33,3 +34,15 @@ terraform-fmt:
       when: on_success
   script:
     - terraform fmt -check -recursive infra
+
+duplication-scan:
+  stage: lint
+  image: node:24-bookworm
+  interruptible: true
+  rules:
+    - if: "$CI_COMMIT_BRANCH || $CI_COMMIT_TAG"
+      when: on_success
+  before_script:
+    - npm ci
+  script:
+    - npm run scan:duplicates

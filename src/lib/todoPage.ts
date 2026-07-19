@@ -407,31 +407,60 @@ function todoChangesFromEditForm({
 
 function changedFields(todo: Todo, changes: TodoChanges): TodoChanges {
   const changed: TodoChanges = {};
-
-  if (changes.title !== undefined && todo.title !== changes.title) {
-    changed.title = changes.title;
-  }
-
-  if (changes.priority !== undefined && todo.priority !== changes.priority) {
-    changed.priority = changes.priority;
-  }
-
-  if (changes.status !== undefined && todo.status !== changes.status) {
-    changed.status = changes.status;
-  }
-
-  if (changes.category !== undefined && todo.category !== changes.category) {
-    changed.category = changes.category;
-  }
-
-  if (
-    changes.description !== undefined &&
-    todo.description !== changes.description
-  ) {
-    changed.description = changes.description;
-  }
-
+  copyChangedTextField(changed, "title", todo.title, changes.title);
+  copyChangedNumberField(changed, todo.priority, changes.priority);
+  copyChangedStatusField(changed, todo.status, changes.status);
+  copyChangedTextField(changed, "category", todo.category, changes.category);
+  copyChangedTextField(
+    changed,
+    "description",
+    todo.description,
+    changes.description,
+  );
   return changed;
+}
+
+function copyChangedTextField(
+  changed: TodoChanges,
+  field: "title" | "category" | "description",
+  current: string,
+  value: string | undefined,
+): void {
+  if (value === undefined || current === value) {
+    return;
+  }
+
+  switch (field) {
+    case "title":
+      changed.title = value;
+      break;
+    case "category":
+      changed.category = value;
+      break;
+    case "description":
+      changed.description = value;
+      break;
+  }
+}
+
+function copyChangedNumberField(
+  changed: TodoChanges,
+  current: number,
+  value: number | undefined,
+): void {
+  if (value !== undefined && current !== value) {
+    changed.priority = value;
+  }
+}
+
+function copyChangedStatusField(
+  changed: TodoChanges,
+  current: TodoStatus,
+  value: TodoStatus | undefined,
+): void {
+  if (value !== undefined && current !== value) {
+    changed.status = value;
+  }
 }
 
 async function addTodo(): Promise<void> {
