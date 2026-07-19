@@ -59,7 +59,12 @@ import "../styles/global.css";
             aria-label="Priority"
           />
           <label class="sr-only" for="todo-status">Status</label>
-          <select id="todo-status" data-status-input name="status" aria-label="Status">
+          <select
+            id="todo-status"
+            data-status-input
+            name="status"
+            aria-label="Status"
+          >
             <option value="todo">Todo</option>
             <option value="in_progress">In progress</option>
             <option value="done">Done</option>
@@ -80,9 +85,9 @@ import "../styles/global.css";
             name="description"
             rows="2"
             maxlength="500"
-            placeholder="Description"
-          ></textarea>
-          <button type="submit" title="Add task" aria-label="Add task">+</button>
+            placeholder="Description"></textarea>
+          <button type="submit" title="Add task" aria-label="Add task">+</button
+          >
         </form>
 
         <div class="todo-toolbar">
@@ -93,7 +98,11 @@ import "../styles/global.css";
             <button type="button" data-filter="todo" aria-selected="false">
               Todo
             </button>
-            <button type="button" data-filter="in_progress" aria-selected="false">
+            <button
+              type="button"
+              data-filter="in_progress"
+              aria-selected="false"
+            >
               In progress
             </button>
             <button type="button" data-filter="done" aria-selected="false">
@@ -133,397 +142,20 @@ import "../styles/global.css";
           <textarea data-edit-description rows="2" maxlength="500"></textarea>
           <button type="submit" class="todo-save">Save</button>
         </form>
-        <button type="button" class="todo-delete" data-delete title="Delete task" aria-label="Delete task">
+        <button
+          type="button"
+          class="todo-delete"
+          data-delete
+          title="Delete task"
+          aria-label="Delete task"
+        >
           x
         </button>
       </li>
     </template>
 
     <script>
-      import {
-        createTodo,
-        deleteTodo,
-        listTodos,
-        updateTodo,
-      } from "../lib/todoApi.js";
-      import {
-        beginTodoLogin,
-        clearTodoSession,
-        completeTodoLogin,
-        getStoredTodoSession,
-        todoLogoutUrl,
-      } from "../lib/todoAuth.js";
-
-      const app = document.querySelector("[data-todo-app]");
-      const authPanel = document.querySelector("[data-auth-panel]");
-      const loginButton = document.querySelector("[data-login]");
-      const logoutButton = document.querySelector("[data-logout]");
-      const form = document.querySelector("[data-create-form]");
-      const titleInput = document.querySelector("[data-title-input]");
-      const priorityInput = document.querySelector("[data-priority-input]");
-      const statusInput = document.querySelector("[data-status-input]");
-      const categoryInput = document.querySelector("[data-category-input]");
-      const descriptionInput = document.querySelector("[data-description-input]");
-      const list = document.querySelector("[data-list]");
-      const status = document.querySelector("[data-status]");
-      const count = document.querySelector("[data-count]");
-      const refreshButton = document.querySelector("[data-refresh]");
-      const itemTemplate = document.querySelector("[data-item-template]");
-      const emptyTemplate = document.querySelector("[data-empty-template]");
-      const filterButtons = [...document.querySelectorAll("[data-filter]")];
-      const apiBaseUrl = import.meta.env.PUBLIC_TODO_API_BASE_URL || "/api";
-      const authConfig = {
-        domain: import.meta.env.PUBLIC_TODO_COGNITO_DOMAIN || "",
-        clientId: import.meta.env.PUBLIC_TODO_COGNITO_CLIENT_ID || "",
-        redirectUri:
-          import.meta.env.PUBLIC_TODO_COGNITO_REDIRECT_URI ||
-          `${window.location.origin}/todo/`,
-        logoutUri:
-          import.meta.env.PUBLIC_TODO_COGNITO_LOGOUT_URI ||
-          `${window.location.origin}/todo/`,
-        scopes: import.meta.env.PUBLIC_TODO_COGNITO_SCOPES || "openid email profile",
-      };
-
-      let todos = [];
-      let activeFilter = "all";
-      let pendingIds = new Set();
-      let authSession = getStoredTodoSession() || legacyLocalSession();
-
-      function hasCognitoConfig() {
-        return Boolean(authConfig.domain && authConfig.clientId);
-      }
-
-      function legacyLocalSession() {
-        const token = import.meta.env.PUBLIC_TODO_ACCESS_TOKEN || "";
-        return token ? { accessToken: token } : null;
-      }
-
-      function accessToken() {
-        return authSession?.accessToken || "";
-      }
-
-      function isAuthenticated() {
-        return Boolean(accessToken());
-      }
-
-      function renderAuth() {
-        const configured = hasCognitoConfig();
-        const authenticated = isAuthenticated();
-
-        loginButton.hidden = authenticated || !configured;
-        logoutButton.hidden = !authenticated || !configured;
-        form.dataset.authenticated = String(authenticated);
-        refreshButton.disabled = !authenticated;
-
-        if (!authenticated) {
-          authPanel.hidden = false;
-          authPanel.textContent = configured
-            ? "Sign in with Cognito to load your tasks."
-            : "Cognito is not configured for this build.";
-          authPanel.dataset.tone = configured ? "neutral" : "error";
-          return;
-        }
-
-        authPanel.hidden = true;
-        authPanel.textContent = "";
-        authPanel.dataset.tone = "neutral";
-      }
-
-      function filteredTodos() {
-        if (activeFilter !== "all") {
-          return todos.filter((todo) => todo.status === activeFilter);
-        }
-
-        return todos;
-      }
-
-      function setStatus(message, tone = "neutral") {
-        status.textContent = message;
-        status.dataset.tone = tone;
-        status.hidden = !message;
-      }
-
-      function renderCount() {
-        const openCount = todos.filter((todo) => todo.status !== "done").length;
-        const label = openCount === 1 ? "open" : "open";
-        count.textContent = `${openCount} ${label}`;
-      }
-
-      function renderFilters() {
-        for (const button of filterButtons) {
-          button.setAttribute(
-            "aria-selected",
-            String(button.dataset.filter === activeFilter),
-          );
-        }
-      }
-
-      function renderTodos() {
-        list.replaceChildren();
-        const visibleTodos = filteredTodos();
-
-        if (visibleTodos.length === 0) {
-          list.append(emptyTemplate.content.cloneNode(true));
-          renderCount();
-          renderFilters();
-          return;
-        }
-
-        for (const todo of visibleTodos) {
-          const node = itemTemplate.content.cloneNode(true);
-          const item = node.querySelector(".todo-item");
-          const editForm = node.querySelector("[data-edit-form]");
-          const editTitle = node.querySelector("[data-edit-title]");
-          const editPriority = node.querySelector("[data-edit-priority]");
-          const editStatus = node.querySelector("[data-edit-status]");
-          const editCategory = node.querySelector("[data-edit-category]");
-          const editDescription = node.querySelector("[data-edit-description]");
-          const deleteButton = node.querySelector("[data-delete]");
-          const saveButton = node.querySelector(".todo-save");
-          const editControls = [
-            editTitle,
-            editPriority,
-            editStatus,
-            editCategory,
-            editDescription,
-            saveButton,
-          ];
-
-          item.dataset.completed = String(todo.completed);
-          item.dataset.status = todo.status;
-          item.dataset.pending = String(pendingIds.has(todo.id));
-          editTitle.value = todo.title;
-          editPriority.value = todo.priority;
-          editStatus.value = todo.status;
-          editCategory.value = todo.category;
-          editDescription.value = todo.description;
-          editControls.forEach((control) => {
-            control.disabled = pendingIds.has(todo.id);
-          });
-          deleteButton.disabled = pendingIds.has(todo.id);
-
-          editForm.addEventListener("submit", (event) => {
-            event.preventDefault();
-            updateExistingTodo(todo, todoChangesFromEditForm({
-              editTitle,
-              editPriority,
-              editStatus,
-              editCategory,
-              editDescription,
-            }));
-          });
-
-          editTitle.addEventListener("blur", () => {
-            updateExistingTodo(todo, { title: editTitle.value.trim() });
-          });
-          editPriority.addEventListener("change", () => {
-            updateExistingTodo(todo, { priority: integerFromInput(editPriority) });
-          });
-          editStatus.addEventListener("change", () => {
-            updateExistingTodo(todo, { status: editStatus.value });
-          });
-          editCategory.addEventListener("blur", () => {
-            updateExistingTodo(todo, { category: editCategory.value.trim() });
-          });
-          editDescription.addEventListener("blur", () => {
-            updateExistingTodo(todo, { description: editDescription.value.trim() });
-          });
-
-          deleteButton.addEventListener("click", () => {
-            removeTodo(todo);
-          });
-
-          list.append(node);
-        }
-
-        renderCount();
-        renderFilters();
-      }
-
-      async function withPending(todoId, action) {
-        pendingIds.add(todoId);
-        renderTodos();
-
-        try {
-          await action();
-        } finally {
-          pendingIds.delete(todoId);
-          renderTodos();
-        }
-      }
-
-      async function loadTodos() {
-        if (!isAuthenticated()) {
-          todos = [];
-          setStatus("");
-          renderTodos();
-          renderAuth();
-          return;
-        }
-
-        setStatus("Loading tasks");
-
-        try {
-          todos = await listTodos({ apiBaseUrl, accessToken: accessToken() });
-          setStatus("");
-        } catch (error) {
-          if (error.message === "unauthorized") {
-            clearTodoSession();
-            authSession = null;
-            renderAuth();
-          }
-
-          setStatus(error.message || "Could not load tasks", "error");
-        }
-
-        renderTodos();
-      }
-
-      function integerFromInput(input) {
-        const value = Number.parseInt(input.value, 10);
-        return Number.isNaN(value) ? 0 : value;
-      }
-
-      function todoChangesFromEditForm({
-        editTitle,
-        editPriority,
-        editStatus,
-        editCategory,
-        editDescription,
-      }) {
-        return {
-          title: editTitle.value.trim(),
-          priority: integerFromInput(editPriority),
-          status: editStatus.value,
-          category: editCategory.value.trim(),
-          description: editDescription.value.trim(),
-        };
-      }
-
-      function changedFields(todo, changes) {
-        return Object.fromEntries(
-          Object.entries(changes).filter(([key, value]) => todo[key] !== value),
-        );
-      }
-
-      async function addTodo() {
-        const normalizedTitle = titleInput.value.trim();
-
-        if (!normalizedTitle) {
-          titleInput.focus();
-          return;
-        }
-
-        form.dataset.pending = "true";
-
-        try {
-          const todo = await createTodo({
-            apiBaseUrl,
-            accessToken: accessToken(),
-            title: normalizedTitle,
-            priority: integerFromInput(priorityInput),
-            status: statusInput.value,
-            category: categoryInput.value.trim(),
-            description: descriptionInput.value.trim(),
-          });
-          todos = [todo, ...todos];
-          titleInput.value = "";
-          priorityInput.value = "0";
-          statusInput.value = "todo";
-          categoryInput.value = "";
-          descriptionInput.value = "";
-          setStatus("");
-        } catch (error) {
-          setStatus(error.message || "Could not add task", "error");
-        } finally {
-          form.dataset.pending = "false";
-          renderTodos();
-        }
-      }
-
-      async function updateExistingTodo(todo, changes) {
-        const normalizedChanges = changedFields(todo, changes);
-
-        if (
-          "title" in normalizedChanges &&
-          !String(normalizedChanges.title).trim()
-        ) {
-          renderTodos();
-          return;
-        }
-
-        if (Object.keys(normalizedChanges).length === 0) {
-          renderTodos();
-          return;
-        }
-
-        await withPending(todo.id, async () => {
-          try {
-            const updated = await updateTodo({
-              apiBaseUrl,
-              accessToken: accessToken(),
-              id: todo.id,
-              changes: normalizedChanges,
-            });
-            todos = todos.map((item) => (item.id === todo.id ? updated : item));
-            setStatus("");
-          } catch (error) {
-            setStatus(error.message || "Could not update task", "error");
-          }
-        });
-      }
-
-      async function removeTodo(todo) {
-        await withPending(todo.id, async () => {
-          try {
-            await deleteTodo({ apiBaseUrl, accessToken: accessToken(), id: todo.id });
-            todos = todos.filter((item) => item.id !== todo.id);
-            setStatus("");
-          } catch (error) {
-            setStatus(error.message || "Could not delete task", "error");
-          }
-        });
-      }
-
-      form.addEventListener("submit", (event) => {
-        event.preventDefault();
-        addTodo();
-      });
-
-      refreshButton.addEventListener("click", loadTodos);
-      loginButton.addEventListener("click", () => {
-        beginTodoLogin({ ...authConfig, location: window.location });
-      });
-      logoutButton.addEventListener("click", () => {
-        window.location.assign(todoLogoutUrl(authConfig).toString());
-      });
-
-      for (const button of filterButtons) {
-        button.addEventListener("click", () => {
-          activeFilter = button.dataset.filter;
-          renderTodos();
-        });
-      }
-
-      async function initialize() {
-        app.dataset.ready = "true";
-        renderAuth();
-
-        if (hasCognitoConfig()) {
-          try {
-            authSession = await completeTodoLogin(authConfig) || authSession;
-          } catch (error) {
-            clearTodoSession();
-            authSession = null;
-            setStatus(error.message || "Could not sign in", "error");
-          }
-        }
-
-        renderAuth();
-        loadTodos();
-      }
-
-      initialize();
+      import "../lib/todoPage.ts";
     </script>
   </body>
 </html>

@@ -91,7 +91,9 @@ class TodoHandlerContractTest(unittest.TestCase):
         todo_handler._repository = None
         repository = InMemoryTodoRepository()
 
-        with patch.object(todo_handler.DynamoDbTodoRepository, "from_env", return_value=repository) as from_env:
+        with patch.object(
+            todo_handler.DynamoDbTodoRepository, "from_env", return_value=repository
+        ) as from_env:
             handler = create_handler()
             self.assertEqual(handler(event("GET", "/todos"), None)["statusCode"], 200)
             self.assertEqual(handler(event("GET", "/todos"), None)["statusCode"], 200)
@@ -212,28 +214,45 @@ class TodoHandlerContractTest(unittest.TestCase):
         self.assertEqual(response_body(response)["message"], "title is required")
 
     def test_post_todos_rejects_invalid_status(self):
-        response = self.handler(event("POST", "/todos", {"title": "Buy milk", "status": "blocked"}), None)
+        response = self.handler(
+            event("POST", "/todos", {"title": "Buy milk", "status": "blocked"}), None
+        )
 
         self.assertEqual(response["statusCode"], 400)
-        self.assertEqual(response_body(response)["message"], "status must be one of: todo, in_progress, done")
+        self.assertEqual(
+            response_body(response)["message"],
+            "status must be one of: todo, in_progress, done",
+        )
 
     def test_post_todos_rejects_non_integer_priority(self):
-        response = self.handler(event("POST", "/todos", {"title": "Buy milk", "priority": "high"}), None)
+        response = self.handler(
+            event("POST", "/todos", {"title": "Buy milk", "priority": "high"}), None
+        )
 
         self.assertEqual(response["statusCode"], 400)
-        self.assertEqual(response_body(response)["message"], "priority must be an integer")
+        self.assertEqual(
+            response_body(response)["message"], "priority must be an integer"
+        )
 
     def test_post_todos_rejects_boolean_priority(self):
-        response = self.handler(event("POST", "/todos", {"title": "Buy milk", "priority": True}), None)
+        response = self.handler(
+            event("POST", "/todos", {"title": "Buy milk", "priority": True}), None
+        )
 
         self.assertEqual(response["statusCode"], 400)
-        self.assertEqual(response_body(response)["message"], "priority must be an integer")
+        self.assertEqual(
+            response_body(response)["message"], "priority must be an integer"
+        )
 
     def test_post_todos_rejects_non_string_category(self):
-        response = self.handler(event("POST", "/todos", {"title": "Buy milk", "category": 12}), None)
+        response = self.handler(
+            event("POST", "/todos", {"title": "Buy milk", "category": 12}), None
+        )
 
         self.assertEqual(response["statusCode"], 400)
-        self.assertEqual(response_body(response)["message"], "category must be a string")
+        self.assertEqual(
+            response_body(response)["message"], "category must be a string"
+        )
 
     def test_post_todos_rejects_invalid_json(self):
         response = self.handler(
@@ -246,7 +265,9 @@ class TodoHandlerContractTest(unittest.TestCase):
         )
 
         self.assertEqual(response["statusCode"], 400)
-        self.assertEqual(response_body(response)["message"], "request body must be valid JSON")
+        self.assertEqual(
+            response_body(response)["message"], "request body must be valid JSON"
+        )
 
     def test_post_todos_rejects_json_array_body(self):
         response = self.handler(
@@ -259,10 +280,14 @@ class TodoHandlerContractTest(unittest.TestCase):
         )
 
         self.assertEqual(response["statusCode"], 400)
-        self.assertEqual(response_body(response)["message"], "request body must be a JSON object")
+        self.assertEqual(
+            response_body(response)["message"], "request body must be a JSON object"
+        )
 
     def test_post_todos_supports_base64_encoded_body(self):
-        body = base64.b64encode(json.dumps({"title": "Encoded task"}).encode("utf-8")).decode("utf-8")
+        body = base64.b64encode(
+            json.dumps({"title": "Encoded task"}).encode("utf-8")
+        ).decode("utf-8")
 
         response = self.handler(
             {
@@ -313,7 +338,9 @@ class TodoHandlerContractTest(unittest.TestCase):
         self.assertEqual(response_body(response)["description"], "Filed receipt.")
 
     def test_patch_todo_returns_404_for_missing_todo(self):
-        response = self.handler(event("PATCH", "/todos/missing", {"completed": True}), None)
+        response = self.handler(
+            event("PATCH", "/todos/missing", {"completed": True}), None
+        )
 
         self.assertEqual(response["statusCode"], 404)
         self.assertEqual(response_body(response)["message"], "todo not found")
@@ -329,10 +356,15 @@ class TodoHandlerContractTest(unittest.TestCase):
             }
         )
 
-        response = self.handler(event("PATCH", "/todos/task-1", {"unknown": "ignored"}), None)
+        response = self.handler(
+            event("PATCH", "/todos/task-1", {"unknown": "ignored"}), None
+        )
 
         self.assertEqual(response["statusCode"], 400)
-        self.assertEqual(response_body(response)["message"], "at least one editable field is required")
+        self.assertEqual(
+            response_body(response)["message"],
+            "at least one editable field is required",
+        )
 
     def test_patch_completed_false_sets_status_todo(self):
         self.repository.create_todo(
@@ -346,7 +378,9 @@ class TodoHandlerContractTest(unittest.TestCase):
             }
         )
 
-        response = self.handler(event("PATCH", "/todos/task-1", {"completed": False}), None)
+        response = self.handler(
+            event("PATCH", "/todos/task-1", {"completed": False}), None
+        )
 
         self.assertEqual(response["statusCode"], 200)
         self.assertEqual(response_body(response)["completed"], False)
@@ -384,13 +418,18 @@ class TodoHandlerContractTest(unittest.TestCase):
         response = self.handler(event("OPTIONS", "/todos"), None)
 
         self.assertEqual(response["statusCode"], 204)
-        self.assertEqual(response["headers"]["Access-Control-Allow-Methods"], "GET,POST,PATCH,DELETE,OPTIONS")
+        self.assertEqual(
+            response["headers"]["Access-Control-Allow-Methods"],
+            "GET,POST,PATCH,DELETE,OPTIONS",
+        )
 
     def test_cors_origin_can_be_configured(self):
         with patch.dict(os.environ, {"TODO_ALLOWED_ORIGIN": "https://mrembiasz.pl"}):
             response = self.handler(event("OPTIONS", "/todos"), None)
 
-        self.assertEqual(response["headers"]["Access-Control-Allow-Origin"], "https://mrembiasz.pl")
+        self.assertEqual(
+            response["headers"]["Access-Control-Allow-Origin"], "https://mrembiasz.pl"
+        )
 
 
 if __name__ == "__main__":

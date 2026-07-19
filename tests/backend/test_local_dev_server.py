@@ -35,7 +35,9 @@ class LocalDevServerTest(unittest.TestCase):
             }
         )
         listed = repository.list_todos()
-        updated = repository.update_todo(created["id"], {"status": "done", "completed": True})
+        updated = repository.update_todo(
+            created["id"], {"status": "done", "completed": True}
+        )
         deleted = repository.delete_todo(created["id"])
 
         self.assertEqual(listed, [created])
@@ -47,7 +49,10 @@ class LocalDevServerTest(unittest.TestCase):
     def test_in_memory_repository_sorts_newest_first(self):
         repository = InMemoryTodoRepository()
 
-        with patch("backend.todo_api.local_dev._now", side_effect=["2026-07-19T09:00:00Z", "2026-07-19T10:00:00Z"]):
+        with patch(
+            "backend.todo_api.local_dev._now",
+            side_effect=["2026-07-19T09:00:00Z", "2026-07-19T10:00:00Z"],
+        ):
             first = repository.create_todo(_todo_data("First"))
             second = repository.create_todo(_todo_data("Second"))
 

@@ -1,4 +1,8 @@
-from tests.integration.todo_api_support import TodoApiDynamoDbTestCase, event, response_body
+from tests.integration.todo_api_support import (
+    TodoApiDynamoDbTestCase,
+    event,
+    response_body,
+)
 
 
 class TodoApiWorkflowIntegrationTest(TodoApiDynamoDbTestCase):
@@ -18,7 +22,9 @@ class TodoApiWorkflowIntegrationTest(TodoApiDynamoDbTestCase):
         reopened = self.update_todo(todo["id"], {"completed": False})
         completed = self.update_todo(todo["id"], {"completed": True})
 
-        self.assertEqual((in_progress["status"], in_progress["completed"]), ("in_progress", False))
+        self.assertEqual(
+            (in_progress["status"], in_progress["completed"]), ("in_progress", False)
+        )
         self.assertEqual((done["status"], done["completed"]), ("done", True))
         self.assertEqual((reopened["status"], reopened["completed"]), ("todo", False))
         self.assertEqual((completed["status"], completed["completed"]), ("done", True))
@@ -43,7 +49,9 @@ class TodoApiWorkflowIntegrationTest(TodoApiDynamoDbTestCase):
             }
         )
 
-        delete_response = self.handler(event("DELETE", f"/todos/{home_task['id']}"), None)
+        delete_response = self.handler(
+            event("DELETE", f"/todos/{home_task['id']}"), None
+        )
         listed = response_body(self.handler(event("GET", "/todos"), None))
 
         self.assertEqual(delete_response["statusCode"], 204)

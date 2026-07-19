@@ -1,0 +1,9 @@
+dist/
+node_modules/
+.terraform/
+**/.terraform/
+.venv/
+coverage/
+docs/
+package-lock.json
+pyproject.toml

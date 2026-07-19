@@ -1,0 +1,7 @@
+# Accepted for this personal static site: adding AWS WAF would add cost and
+# operational surface that is not justified for this deployment.
+AVD-AWS-0011
+
+# Accepted for this personal static site: SSE-S3 still encrypts at rest, while
+# customer-managed KMS keys would add cost and key-management overhead.
+AVD-AWS-0132
