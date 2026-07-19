@@ -220,14 +220,21 @@ body {
   color: var(--text);
 }
 
+.project-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
 .project-link {
   display: inline-flex;
   margin-top: 0.45rem;
-  color: var(--muted);
+  color: var(--text);
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     monospace;
   font-size: 0.69rem;
+  font-weight: 500;
 }
 
 .project span {

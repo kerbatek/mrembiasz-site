@@ -36,6 +36,7 @@ const projects = [
     description:
       "Static portfolio and cloud infrastructure practice using Astro, Terraform, private S3, CloudFront OAC, ACM TLS, and manual Cloudflare DNS.",
     href: "/projects/personal-site-aws-deployment/",
+    repositoryHref: "https://github.com/kerbatek/mrembiasz-site",
   },
   {
     title: "Homelab Infrastructure Platform",
@@ -112,6 +113,7 @@ const socialLinks = [
       name="description"
       content="Personal landing page for Mateusz Rembiasz."
     />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Mateusz Rembiasz</title>
   </head>
   <body>
@@ -170,13 +172,27 @@ const socialLinks = [
                   <span>{project.stack}</span>
                 </div>
                 <p>{project.description}</p>
-                {
-                  project.href && (
-                    <a class="project-link" href={project.href}>
-                      Read case study
-                    </a>
-                  )
-                }
+                <div class="project-links">
+                  {
+                    project.repositoryHref && (
+                      <a
+                        class="project-link"
+                        href={project.repositoryHref}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                      >
+                        GitHub
+                      </a>
+                    )
+                  }
+                  {
+                    project.href && (
+                      <a class="project-link" href={project.href}>
+                        Read case study
+                      </a>
+                    )
+                  }
+                </div>
               </article>
             ))
           }
