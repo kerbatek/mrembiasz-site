@@ -1,0 +1,186 @@
+---
+import PrimaryNav from "../../components/PrimaryNav.astro";
+import "../../styles/global.css";
+
+const decisions = [
+  {
+    title: "Astro page with a small SPA controller",
+    description:
+      "The Todo app stays inside the existing static site, but the interactive behavior lives in a focused TypeScript controller and API helper modules instead of spreading request logic through the Astro markup.",
+  },
+  {
+    title: "Cognito Hosted UI for authentication",
+    description:
+      "Cognito handles login, token issuance, logout, and callback URLs. The frontend stores the session locally and sends the access token to API Gateway as a bearer token.",
+  },
+  {
+    title: "HTTP API with JWT authorization",
+    description:
+      "API Gateway validates Cognito JWTs before invoking Lambda, which keeps unauthenticated traffic out of the Python handler and makes the backend contract explicit.",
+  },
+  {
+    title: "Python Lambda for a small CRUD backend",
+    description:
+      "Python keeps the Lambda implementation compact and easy to test with unittest. The handler owns request validation, status normalization, and DynamoDB mapping.",
+  },
+  {
+    title: "DynamoDB on-demand table",
+    description:
+      "DynamoDB fits the simple key-value access pattern, avoids server management, and keeps cost low for personal-use traffic. Local DynamoDB in Docker covers integration testing before AWS deployment.",
+  },
+  {
+    title: "CI split by responsibility",
+    description:
+      "Frontend, backend, integration, Terraform, security, and platform checks run as separate GitLab jobs so failures point at the right ownership area.",
+  },
+];
+
+const nextSteps = [
+  "Add a production deploy pipeline after merges to main.",
+  "Move Terraform plan into CI artifacts and keep apply manual.",
+  "Add observability beyond basic CloudWatch logs once real usage patterns are clearer.",
+  "Consider a DynamoDB access pattern change if the task list grows beyond personal scale.",
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Case study for a personal Todo app using Astro, Cognito, API Gateway, Python Lambda, DynamoDB, Terraform, Docker local development, and GitLab CI."
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Personal Todo Architecture / Mateusz Rembiasz</title>
+  </head>
+  <body>
+    <main class="container case-study">
+      <PrimaryNav currentPath="/projects/personal-todo-architecture/" />
+
+      <header class="case-study-header">
+        <h1 class="name">Personal Todo Architecture Case Study</h1>
+        <p class="bio">
+          Authenticated personal task app built into the static portfolio with
+          an Astro SPA frontend, Cognito Hosted UI, API Gateway JWT
+          authorization, Python Lambda, DynamoDB, Terraform, local DynamoDB
+          development, and GitLab CI.
+        </p>
+        <div class="project-links">
+          <a
+            class="project-link"
+            href="https://github.com/kerbatek/mrembiasz-site"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            GitHub repository
+          </a>
+          <a class="project-link" href="/todo/">Open Todo app</a>
+        </div>
+      </header>
+
+      <section class="section" aria-labelledby="overview-title">
+        <p id="overview-title" class="section-label">Overview</p>
+        <div class="paragraph-stack">
+          <p class="body-copy">
+            The Todo app extends the static portfolio with a real authenticated
+            workflow while keeping the public site simple to host. The frontend
+            is still served through the static-site deployment, but task data is
+            loaded through API calls to an AWS serverless backend.
+          </p>
+          <p class="body-copy">
+            The project is intentionally small, but it exercises production-like
+            boundaries: identity, API authorization, input validation,
+            persistence, infrastructure as code, local integration tests, and CI
+            separation by responsibility.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="architecture-title">
+        <p id="architecture-title" class="section-label">Architecture</p>
+        <div class="technology-groups">
+          <div class="technology-group">
+            <h2>Frontend</h2>
+            <p>
+              Astro page with a TypeScript Todo controller, focused API helper,
+              Cognito auth helper, autosave editing, mobile layout, and
+              dedicated Todo CSS.
+            </p>
+          </div>
+          <div class="technology-group">
+            <h2>Authentication</h2>
+            <p>
+              Cognito user pool and Hosted UI with authorization-code plus PKCE
+              login for the browser client.
+            </p>
+          </div>
+          <div class="technology-group">
+            <h2>API</h2>
+            <p>
+              API Gateway HTTP API routes for listing, creating, updating, and
+              deleting tasks, protected by a Cognito JWT authorizer.
+            </p>
+          </div>
+          <div class="technology-group">
+            <h2>AWS Lambda</h2>
+            <p>
+              Python Lambda handler with small repository and validation
+              boundaries, packaged by Terraform for AWS deployment.
+            </p>
+          </div>
+          <div class="technology-group">
+            <h2>Storage</h2>
+            <p>
+              DynamoDB on-demand table for task records, with DynamoDB Local in
+              Docker for local development and integration testing.
+            </p>
+          </div>
+          <div class="technology-group">
+            <h2>CI</h2>
+            <p>
+              GitLab CI runs lint, security, frontend tests, backend tests,
+              integration tests, Terraform validation, and platform checks.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="decisions-title">
+        <p id="decisions-title" class="section-label">Key decisions</p>
+        <div class="decision-list">
+          {
+            decisions.map((decision) => (
+              <article class="decision-item">
+                <h2>{decision.title}</h2>
+                <p>{decision.description}</p>
+              </article>
+            ))
+          }
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="flow-title">
+        <p id="flow-title" class="section-label">Request flow</p>
+        <ol class="ordered-list">
+          <li>The user opens `/todo/` from the static Astro site.</li>
+          <li>Cognito Hosted UI signs the user in and redirects back.</li>
+          <li>The browser stores the token session and calls the Todo API.</li>
+          <li>API Gateway validates the Cognito JWT before invoking Lambda.</li>
+          <li>Lambda validates the request and reads or writes DynamoDB.</li>
+          <li>
+            The frontend renders tasks, autosaves edits, and sorts locally.
+          </li>
+        </ol>
+      </section>
+
+      <section class="section" aria-labelledby="next-title">
+        <p id="next-title" class="section-label">Next phases</p>
+        <ul class="plain-list">
+          {nextSteps.map((step) => <li>{step}</li>)}
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>
