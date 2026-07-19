@@ -1,5 +1,8 @@
+import base64
 import json
+import os
 import unittest
+from unittest.mock import patch
 
 from backend.todo_api.handler import create_handler
 
@@ -48,6 +51,14 @@ def event(method, path, body=None):
     }
 
 
+def v1_event(method, path, body=None):
+    return {
+        "httpMethod": method,
+        "path": path,
+        "body": json.dumps(body) if body is not None else None,
+    }
+
+
 def response_body(response):
     return json.loads(response["body"]) if response.get("body") else None
 
@@ -72,6 +83,23 @@ class TodoHandlerContractTest(unittest.TestCase):
 
         self.assertEqual(response["statusCode"], 200)
         self.assertEqual(response["headers"]["Content-Type"], "application/json")
+        self.assertEqual(response["headers"]["Access-Control-Allow-Origin"], "*")
+        self.assertEqual(response_body(response)[0]["title"], "Pay invoice")
+
+    def test_get_todos_supports_api_gateway_v1_events(self):
+        self.repository.create_todo(
+            {
+                "title": "Pay invoice",
+                "priority": 2,
+                "status": "todo",
+                "category": "finance",
+                "description": "",
+            }
+        )
+
+        response = self.handler(v1_event("GET", "/todos/"), None)
+
+        self.assertEqual(response["statusCode"], 200)
         self.assertEqual(response_body(response)[0]["title"], "Pay invoice")
 
     def test_post_todos_creates_todo(self):
@@ -133,6 +161,60 @@ class TodoHandlerContractTest(unittest.TestCase):
         self.assertEqual(response["statusCode"], 400)
         self.assertEqual(response_body(response)["message"], "priority must be an integer")
 
+    def test_post_todos_rejects_boolean_priority(self):
+        response = self.handler(event("POST", "/todos", {"title": "Buy milk", "priority": True}), None)
+
+        self.assertEqual(response["statusCode"], 400)
+        self.assertEqual(response_body(response)["message"], "priority must be an integer")
+
+    def test_post_todos_rejects_non_string_category(self):
+        response = self.handler(event("POST", "/todos", {"title": "Buy milk", "category": 12}), None)
+
+        self.assertEqual(response["statusCode"], 400)
+        self.assertEqual(response_body(response)["message"], "category must be a string")
+
+    def test_post_todos_rejects_invalid_json(self):
+        response = self.handler(
+            {
+                "requestContext": {"http": {"method": "POST", "path": "/todos"}},
+                "rawPath": "/todos",
+                "body": "{",
+            },
+            None,
+        )
+
+        self.assertEqual(response["statusCode"], 400)
+        self.assertEqual(response_body(response)["message"], "request body must be valid JSON")
+
+    def test_post_todos_rejects_json_array_body(self):
+        response = self.handler(
+            {
+                "requestContext": {"http": {"method": "POST", "path": "/todos"}},
+                "rawPath": "/todos",
+                "body": json.dumps(["not", "an", "object"]),
+            },
+            None,
+        )
+
+        self.assertEqual(response["statusCode"], 400)
+        self.assertEqual(response_body(response)["message"], "request body must be a JSON object")
+
+    def test_post_todos_supports_base64_encoded_body(self):
+        body = base64.b64encode(json.dumps({"title": "Encoded task"}).encode("utf-8")).decode("utf-8")
+
+        response = self.handler(
+            {
+                "requestContext": {"http": {"method": "POST", "path": "/todos"}},
+                "rawPath": "/todos",
+                "body": body,
+                "isBase64Encoded": True,
+            },
+            None,
+        )
+
+        self.assertEqual(response["statusCode"], 201)
+        self.assertEqual(response_body(response)["title"], "Encoded task")
+
     def test_patch_todo_updates_allowed_fields(self):
         self.repository.create_todo(
             {
@@ -174,6 +256,40 @@ class TodoHandlerContractTest(unittest.TestCase):
         self.assertEqual(response["statusCode"], 404)
         self.assertEqual(response_body(response)["message"], "todo not found")
 
+    def test_patch_todo_rejects_empty_change_set(self):
+        self.repository.create_todo(
+            {
+                "title": "Pay invoice",
+                "priority": 1,
+                "status": "todo",
+                "category": "finance",
+                "description": "",
+            }
+        )
+
+        response = self.handler(event("PATCH", "/todos/task-1", {"unknown": "ignored"}), None)
+
+        self.assertEqual(response["statusCode"], 400)
+        self.assertEqual(response_body(response)["message"], "at least one editable field is required")
+
+    def test_patch_completed_false_sets_status_todo(self):
+        self.repository.create_todo(
+            {
+                "title": "Pay invoice",
+                "priority": 1,
+                "status": "done",
+                "category": "finance",
+                "description": "",
+                "completed": True,
+            }
+        )
+
+        response = self.handler(event("PATCH", "/todos/task-1", {"completed": False}), None)
+
+        self.assertEqual(response["statusCode"], 200)
+        self.assertEqual(response_body(response)["completed"], False)
+        self.assertEqual(response_body(response)["status"], "todo")
+
     def test_delete_todo_returns_no_content(self):
         self.repository.create_todo(
             {
@@ -190,11 +306,29 @@ class TodoHandlerContractTest(unittest.TestCase):
         self.assertEqual(response["statusCode"], 204)
         self.assertNotIn("body", response)
 
+    def test_delete_todo_returns_404_for_missing_todo(self):
+        response = self.handler(event("DELETE", "/todos/missing"), None)
+
+        self.assertEqual(response["statusCode"], 404)
+        self.assertEqual(response_body(response)["message"], "todo not found")
+
+    def test_unknown_route_returns_404(self):
+        response = self.handler(event("GET", "/unknown"), None)
+
+        self.assertEqual(response["statusCode"], 404)
+        self.assertEqual(response_body(response)["message"], "route not found")
+
     def test_options_returns_cors_preflight_response(self):
         response = self.handler(event("OPTIONS", "/todos"), None)
 
         self.assertEqual(response["statusCode"], 204)
         self.assertEqual(response["headers"]["Access-Control-Allow-Methods"], "GET,POST,PATCH,DELETE,OPTIONS")
+
+    def test_cors_origin_can_be_configured(self):
+        with patch.dict(os.environ, {"TODO_ALLOWED_ORIGIN": "https://mrembiasz.pl"}):
+            response = self.handler(event("OPTIONS", "/todos"), None)
+
+        self.assertEqual(response["headers"]["Access-Control-Allow-Origin"], "https://mrembiasz.pl")
 
 
 if __name__ == "__main__":

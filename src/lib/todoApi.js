@@ -59,7 +59,29 @@ export async function createTodo({
   apiBaseUrl,
   fetch = globalThis.fetch,
   title,
+  priority,
+  status,
+  category,
+  description,
 }) {
+  const payload = { title: title.trim() };
+
+  if (priority !== undefined) {
+    payload.priority = priority;
+  }
+
+  if (status !== undefined) {
+    payload.status = status;
+  }
+
+  if (category !== undefined) {
+    payload.category = category;
+  }
+
+  if (description !== undefined) {
+    payload.description = description;
+  }
+
   const body = await request({
     apiBaseUrl,
     fetch,
@@ -67,7 +89,7 @@ export async function createTodo({
     init: {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: title.trim() }),
+      body: JSON.stringify(payload),
     },
   });
 
