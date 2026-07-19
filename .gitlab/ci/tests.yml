@@ -3,7 +3,7 @@ frontend-tests:
   image: node:24-bookworm
   interruptible: true
   rules:
-    - if: '$CI_COMMIT_BRANCH || $CI_COMMIT_TAG'
+    - if: "$CI_COMMIT_BRANCH || $CI_COMMIT_TAG"
       when: on_success
   before_script:
     - npm ci
@@ -15,7 +15,7 @@ backend-tests:
   image: python:3.14-slim
   interruptible: true
   rules:
-    - if: '$CI_COMMIT_BRANCH || $CI_COMMIT_TAG'
+    - if: "$CI_COMMIT_BRANCH || $CI_COMMIT_TAG"
       when: on_success
   script:
     - python -m unittest discover tests/backend
@@ -38,7 +38,7 @@ integration-tests:
     AWS_SECRET_ACCESS_KEY: "local"
     AWS_DEFAULT_REGION: "us-east-1"
   rules:
-    - if: '$CI_COMMIT_BRANCH || $CI_COMMIT_TAG'
+    - if: "$CI_COMMIT_BRANCH || $CI_COMMIT_TAG"
       when: on_success
   before_script:
     - python -m pip install -r backend/requirements.txt

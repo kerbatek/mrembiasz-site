@@ -5,26 +5,19 @@
     entrypoint: [""]
   interruptible: true
   rules:
-    - if: '$CI_COMMIT_BRANCH || $CI_COMMIT_TAG'
+    - if: "$CI_COMMIT_BRANCH || $CI_COMMIT_TAG"
       when: on_success
-
-terraform-fmt:
-  extends: .terraform-job
-  script:
-    - terraform fmt -check -recursive infra
 
 terraform-validate-static-site:
   extends: .terraform-job
-  needs:
-    - terraform-fmt
+  stage: test
   script:
     - terraform -chdir=infra/aws-static-site init -backend=false
     - terraform -chdir=infra/aws-static-site validate
 
 terraform-validate-personal-todo:
   extends: .terraform-job
-  needs:
-    - terraform-fmt
+  stage: test
   script:
     - terraform -chdir=infra/aws-personal-todo init -backend=false
     - terraform -chdir=infra/aws-personal-todo validate

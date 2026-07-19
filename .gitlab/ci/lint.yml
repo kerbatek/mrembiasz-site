@@ -1,0 +1,35 @@
+frontend-lint:
+  stage: lint
+  image: node:24-bookworm
+  interruptible: true
+  rules:
+    - if: "$CI_COMMIT_BRANCH || $CI_COMMIT_TAG"
+      when: on_success
+  before_script:
+    - npm ci
+  script:
+    - npm run lint:frontend
+
+backend-lint:
+  stage: lint
+  image: python:3.14-slim
+  interruptible: true
+  rules:
+    - if: "$CI_COMMIT_BRANCH || $CI_COMMIT_TAG"
+      when: on_success
+  script:
+    - python -m pip install -r backend/requirements-dev.txt
+    - ruff check backend tests/backend tests/integration
+    - ruff format --check backend tests/backend tests/integration
+
+terraform-fmt:
+  stage: lint
+  image:
+    name: hashicorp/terraform:1.12
+    entrypoint: [""]
+  interruptible: true
+  rules:
+    - if: "$CI_COMMIT_BRANCH || $CI_COMMIT_TAG"
+      when: on_success
+  script:
+    - terraform fmt -check -recursive infra
