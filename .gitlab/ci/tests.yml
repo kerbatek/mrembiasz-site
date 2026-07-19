@@ -13,6 +13,9 @@ frontend-tests:
     when: always
     reports:
       junit: reports/frontend-junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: reports/frontend-coverage/cobertura-coverage.xml
 
 backend-tests:
   stage: test
@@ -24,11 +27,15 @@ backend-tests:
   before_script:
     - python -m pip install -r backend/requirements-dev.txt
   script:
-    - python -m xmlrunner discover tests/backend -o reports/backend
+    - coverage run -m xmlrunner discover tests/backend -o reports/backend
+    - coverage xml -o reports/backend-coverage.xml
   artifacts:
     when: always
     reports:
       junit: reports/backend/*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: reports/backend-coverage.xml
 
 integration-tests:
   stage: test
