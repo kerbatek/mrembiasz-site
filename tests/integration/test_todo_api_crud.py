@@ -1,53 +1,7 @@
-import json
-import os
-import unittest
-
-from backend.todo_api.bootstrap_local_dynamodb import ensure_table
-from backend.todo_api.handler import create_handler
-from backend.todo_api.repository import DynamoDbTodoRepository
+from tests.integration.todo_api_support import TodoApiDynamoDbTestCase, event, response_body
 
 
-def event(method, path, body=None):
-    return {
-        "requestContext": {
-            "http": {
-                "method": method,
-                "path": path,
-            },
-        },
-        "rawPath": path,
-        "body": json.dumps(body) if body is not None else None,
-    }
-
-
-def response_body(response):
-    return json.loads(response["body"]) if response.get("body") else None
-
-
-@unittest.skipUnless(
-    os.environ.get("RUN_INTEGRATION_TESTS") == "1",
-    "integration tests require RUN_INTEGRATION_TESTS=1",
-)
-class TodoApiDynamoDbIntegrationTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.endpoint_url = os.environ["TODO_DYNAMODB_ENDPOINT"]
-        cls.table_name = os.environ["TODO_TABLE_NAME"]
-        ensure_table(endpoint_url=cls.endpoint_url, table_name=cls.table_name)
-
-        import boto3
-
-        cls.table = boto3.resource(
-            "dynamodb",
-            endpoint_url=cls.endpoint_url,
-        ).Table(cls.table_name)
-
-    def setUp(self):
-        for item in self.table.scan(ConsistentRead=True).get("Items", []):
-            self.table.delete_item(Key={"id": item["id"]})
-
-        self.handler = create_handler(DynamoDbTodoRepository.from_env)
-
+class TodoApiCrudIntegrationTest(TodoApiDynamoDbTestCase):
     def test_todo_api_crud_roundtrip_against_dynamodb_local(self):
         create_response = self.handler(
             event(
@@ -98,7 +52,3 @@ class TodoApiDynamoDbIntegrationTest(unittest.TestCase):
 
         final_list_response = self.handler(event("GET", "/todos"), None)
         self.assertEqual(response_body(final_list_response), [])
-
-
-if __name__ == "__main__":
-    unittest.main()
