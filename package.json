@@ -18,6 +18,7 @@
     "format:backend:check": "ruff format --check backend tests/backend tests/integration",
     "scan:duplicates": "jscpd --config .jscpd.json",
     "test": "node --test tests/*.test.mjs",
+    "test:ci": "mkdir -p reports && node --test --test-reporter=junit --test-reporter-destination=reports/frontend-junit.xml tests/*.test.mjs",
     "test:backend": "python3 -m unittest discover tests/backend",
     "test:integration": "RUN_INTEGRATION_TESTS=1 TODO_TABLE_NAME=personal-todos TODO_DYNAMODB_ENDPOINT=http://127.0.0.1:8000 AWS_ACCESS_KEY_ID=local AWS_SECRET_ACCESS_KEY=local AWS_DEFAULT_REGION=us-east-1 .venv/bin/python -m unittest discover tests/integration",
     "build": "ASTRO_TELEMETRY_DISABLED=1 astro build",
