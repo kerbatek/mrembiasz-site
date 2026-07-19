@@ -1,16 +1,11 @@
 stages:
+  - test
   - build
 
-build-container:
-  stage: build
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
-  rules:
-    - when: never
-  script:
-    - /kaniko/executor
-      --context "$CI_PROJECT_DIR"
-      --dockerfile "$CI_PROJECT_DIR/Dockerfile"
-      --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
-      --destination "$CI_REGISTRY_IMAGE:latest"
+workflow:
+  auto_cancel:
+    on_new_commit: interruptible
+
+include:
+  - local: ".gitlab/ci/tests.yml"
+  - local: ".gitlab/ci/build.yml"

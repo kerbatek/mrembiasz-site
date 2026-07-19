@@ -1,8 +1,28 @@
 .DS_Store
+
+# Frontend build artifacts
 .terraform/
 .astro/
 dist/
 node_modules/
+
+# Python backend artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.venv/
+venv/
+
+# Local Lambda/SAM artifacts
+.aws-sam/
+*.zip
+
+# Local environment and Terraform state
+.env
+.env.*
 *.tfstate
 *.tfstate.*
 *.tfplan

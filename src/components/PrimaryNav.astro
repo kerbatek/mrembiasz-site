@@ -1,0 +1,25 @@
+---
+const { currentPath = "/" } = Astro.props;
+
+const navItems = [
+  { href: "/", label: "Home" },
+  {
+    href: "/projects/personal-site-aws-deployment/",
+    label: "Portfolio architecture",
+  },
+  { href: "/todo/", label: "Todo" },
+];
+---
+
+<nav class="nav" aria-label="Primary navigation">
+  {
+    navItems.map((item) => (
+      <a
+        href={item.href}
+        aria-current={item.href === currentPath ? "page" : undefined}
+      >
+        {item.label}
+      </a>
+    ))
+  }
+</nav>

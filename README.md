@@ -23,6 +23,67 @@ Run the local dev server:
 npm run dev
 ```
 
+Run the local Todo API server:
+
+```bash
+npm run dev:api
+```
+
+The local Todo API listens on `http://127.0.0.1:3000`, stores tasks in memory,
+and resets when the process stops. To point the Astro todo page at it, run the
+frontend with:
+
+```bash
+PUBLIC_TODO_API_BASE_URL=http://127.0.0.1:3000 npm run dev
+```
+
+To test Cognito-mode authorization locally without a real Cognito token, start
+the API with `TODO_AUTH_MODE=cognito` and `TODO_LOCAL_ACCESS_TOKEN`, then pass
+the same value to the frontend:
+
+```bash
+TODO_AUTH_MODE=cognito TODO_LOCAL_ACCESS_TOKEN=local-token npm run dev:api
+PUBLIC_TODO_API_BASE_URL=http://127.0.0.1:3000 PUBLIC_TODO_ACCESS_TOKEN=local-token npm run dev
+```
+
+Production should use a Cognito user pool and API Gateway JWT authorizer. The
+frontend sends the Cognito access token as `Authorization: Bearer <token>`.
+
+For DynamoDB-backed local development, create a virtualenv and install the backend Python dependency:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r backend/requirements.txt
+```
+
+Start DynamoDB Local with Docker:
+
+```bash
+npm run dynamodb:local
+```
+
+In another terminal, create the local table:
+
+```bash
+npm run dynamodb:bootstrap
+```
+
+Then run the Todo API against DynamoDB Local:
+
+```bash
+npm run dev:api:dynamodb
+```
+
+The DynamoDB Local endpoint is `http://127.0.0.1:8000`, and the default local
+table name is `personal-todos`.
+
+Run tests:
+
+```bash
+npm test
+npm run test:backend
+```
+
 Build the static production files:
 
 ```bash
