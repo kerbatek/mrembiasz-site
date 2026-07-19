@@ -86,6 +86,55 @@ class TodoHandlerContractTest(unittest.TestCase):
         self.assertEqual(response["headers"]["Access-Control-Allow-Origin"], "*")
         self.assertEqual(response_body(response)[0]["title"], "Pay invoice")
 
+    def test_auth_is_not_required_when_cognito_mode_is_not_enabled(self):
+        response = self.handler(event("GET", "/todos"), None)
+
+        self.assertEqual(response["statusCode"], 200)
+
+    def test_cognito_mode_rejects_missing_authorizer_claims(self):
+        with patch.dict(os.environ, {"TODO_AUTH_MODE": "cognito"}):
+            response = self.handler(event("GET", "/todos"), None)
+
+        self.assertEqual(response["statusCode"], 401)
+        self.assertEqual(response_body(response)["message"], "unauthorized")
+
+    def test_cognito_mode_accepts_api_gateway_jwt_authorizer_claims(self):
+        request = event("GET", "/todos")
+        request["requestContext"]["authorizer"] = {
+            "jwt": {
+                "claims": {
+                    "sub": "user-123",
+                    "client_id": "todo-client",
+                },
+            },
+        }
+
+        with patch.dict(os.environ, {"TODO_AUTH_MODE": "cognito"}):
+            response = self.handler(request, None)
+
+        self.assertEqual(response["statusCode"], 200)
+
+    def test_cognito_mode_accepts_matching_local_bearer_token(self):
+        request = event("GET", "/todos")
+        request["headers"] = {"Authorization": "Bearer local-token"}
+
+        with patch.dict(
+            os.environ,
+            {
+                "TODO_AUTH_MODE": "cognito",
+                "TODO_LOCAL_ACCESS_TOKEN": "local-token",
+            },
+        ):
+            response = self.handler(request, None)
+
+        self.assertEqual(response["statusCode"], 200)
+
+    def test_options_does_not_require_cognito_authorizer_claims(self):
+        with patch.dict(os.environ, {"TODO_AUTH_MODE": "cognito"}):
+            response = self.handler(event("OPTIONS", "/todos"), None)
+
+        self.assertEqual(response["statusCode"], 204)
+
     def test_get_todos_supports_api_gateway_v1_events(self):
         self.repository.create_todo(
             {

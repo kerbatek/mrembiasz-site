@@ -5,6 +5,26 @@ Base URL is configured in the frontend with `PUBLIC_TODO_API_BASE_URL`.
 All successful JSON responses use `Content-Type: application/json`.
 All routes include CORS headers for browser calls.
 
+## Auth
+
+When `TODO_AUTH_MODE=cognito`, every non-`OPTIONS` request must be authorized by API Gateway's Cognito/JWT authorizer before reaching Lambda.
+
+The frontend sends the Cognito access token as:
+
+```text
+Authorization: Bearer <access token>
+```
+
+In production, API Gateway validates the token and passes JWT claims to Lambda in `requestContext.authorizer.jwt.claims`. Lambda requires a Cognito subject claim (`sub`) in Cognito mode.
+
+For local-only development, `TODO_LOCAL_ACCESS_TOKEN` can be set and matched against the same `Authorization` header.
+
+Unauthorized requests return `401`:
+
+```json
+{ "message": "unauthorized" }
+```
+
 ## Todo Object
 
 ```json

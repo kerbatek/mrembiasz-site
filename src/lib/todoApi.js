@@ -25,8 +25,22 @@ async function parseJson(response) {
   return response.json();
 }
 
-async function request({ apiBaseUrl, fetch, path, init }) {
-  const response = await fetch(apiUrl(apiBaseUrl, path), init);
+function headersWithAccessToken(headers = {}, accessToken) {
+  if (!accessToken) {
+    return headers;
+  }
+
+  return {
+    ...headers,
+    Authorization: `Bearer ${accessToken}`,
+  };
+}
+
+async function request({ apiBaseUrl, accessToken, fetch, path, init }) {
+  const response = await fetch(apiUrl(apiBaseUrl, path), {
+    ...init,
+    headers: headersWithAccessToken(init.headers, accessToken),
+  });
 
   if (!response.ok) {
     let message = `Todo API request failed with status ${response.status}`;
@@ -44,9 +58,14 @@ async function request({ apiBaseUrl, fetch, path, init }) {
   return parseJson(response);
 }
 
-export async function listTodos({ apiBaseUrl, fetch = globalThis.fetch }) {
+export async function listTodos({
+  apiBaseUrl,
+  accessToken,
+  fetch = globalThis.fetch,
+}) {
   const body = await request({
     apiBaseUrl,
+    accessToken,
     fetch,
     path: "/todos",
     init: { method: "GET" },
@@ -57,6 +76,7 @@ export async function listTodos({ apiBaseUrl, fetch = globalThis.fetch }) {
 
 export async function createTodo({
   apiBaseUrl,
+  accessToken,
   fetch = globalThis.fetch,
   title,
   priority,
@@ -84,6 +104,7 @@ export async function createTodo({
 
   const body = await request({
     apiBaseUrl,
+    accessToken,
     fetch,
     path: "/todos",
     init: {
@@ -98,12 +119,14 @@ export async function createTodo({
 
 export async function updateTodo({
   apiBaseUrl,
+  accessToken,
   fetch = globalThis.fetch,
   id,
   changes,
 }) {
   const body = await request({
     apiBaseUrl,
+    accessToken,
     fetch,
     path: `/todos/${encodeURIComponent(id)}`,
     init: {
@@ -118,11 +141,13 @@ export async function updateTodo({
 
 export async function deleteTodo({
   apiBaseUrl,
+  accessToken,
   fetch = globalThis.fetch,
   id,
 }) {
   await request({
     apiBaseUrl,
+    accessToken,
     fetch,
     path: `/todos/${encodeURIComponent(id)}`,
     init: { method: "DELETE" },

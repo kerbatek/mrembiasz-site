@@ -150,6 +150,10 @@ import "../styles/global.css";
       const emptyTemplate = document.querySelector("[data-empty-template]");
       const filterButtons = [...document.querySelectorAll("[data-filter]")];
       const apiBaseUrl = import.meta.env.PUBLIC_TODO_API_BASE_URL || "/api";
+      const accessToken =
+        window.localStorage.getItem("todoAccessToken") ||
+        import.meta.env.PUBLIC_TODO_ACCESS_TOKEN ||
+        "";
 
       let todos = [];
       let activeFilter = "all";
@@ -282,7 +286,7 @@ import "../styles/global.css";
         setStatus("Loading tasks");
 
         try {
-          todos = await listTodos({ apiBaseUrl });
+          todos = await listTodos({ apiBaseUrl, accessToken });
           setStatus("");
         } catch (error) {
           setStatus(error.message || "Could not load tasks", "error");
@@ -331,6 +335,7 @@ import "../styles/global.css";
         try {
           const todo = await createTodo({
             apiBaseUrl,
+            accessToken,
             title: normalizedTitle,
             priority: integerFromInput(priorityInput),
             status: statusInput.value,
@@ -372,6 +377,7 @@ import "../styles/global.css";
           try {
             const updated = await updateTodo({
               apiBaseUrl,
+              accessToken,
               id: todo.id,
               changes: normalizedChanges,
             });
@@ -386,7 +392,7 @@ import "../styles/global.css";
       async function removeTodo(todo) {
         await withPending(todo.id, async () => {
           try {
-            await deleteTodo({ apiBaseUrl, id: todo.id });
+            await deleteTodo({ apiBaseUrl, accessToken, id: todo.id });
             todos = todos.filter((item) => item.id !== todo.id);
             setStatus("");
           } catch (error) {

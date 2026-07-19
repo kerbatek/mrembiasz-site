@@ -59,6 +59,18 @@ test("listTodos loads todos from the API base and normalizes dates", async () =>
   ]);
 });
 
+test("listTodos sends bearer token when provided", async () => {
+  const { calls, fetch } = mockFetch([]);
+
+  await listTodos({
+    apiBaseUrl: "https://api.example.com",
+    accessToken: "token",
+    fetch,
+  });
+
+  assert.equal(calls[0].init.headers.Authorization, "Bearer token");
+});
+
 test("listTodos applies defaults when API omits optional fields", async () => {
   const { fetch } = mockFetch([
     {
@@ -111,6 +123,30 @@ test("createTodo posts a title and trims surrounding whitespace", async () => {
   assert.equal(calls[0].init.headers["Content-Type"], "application/json");
   assert.equal(calls[0].init.body, JSON.stringify({ title: "Buy coffee" }));
   assert.equal(todo.title, "Buy coffee");
+});
+
+test("createTodo includes bearer token alongside JSON headers", async () => {
+  const { calls, fetch } = mockFetch({
+    id: "task-2",
+    title: "Buy coffee",
+    priority: 0,
+    status: "todo",
+    category: "",
+    description: "",
+    completed: false,
+    createdAt: "2026-07-19T10:00:00.000Z",
+    updatedAt: "2026-07-19T10:00:00.000Z",
+  });
+
+  await createTodo({
+    apiBaseUrl: "https://api.example.com/",
+    accessToken: "token",
+    fetch,
+    title: "Buy coffee",
+  });
+
+  assert.equal(calls[0].init.headers["Content-Type"], "application/json");
+  assert.equal(calls[0].init.headers.Authorization, "Bearer token");
 });
 
 test("createTodo can post full todo metadata", async () => {

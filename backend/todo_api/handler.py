@@ -6,7 +6,7 @@ from .repository import DynamoDbTodoRepository
 
 
 ALLOWED_METHODS = "GET,POST,PATCH,DELETE,OPTIONS"
-ALLOWED_HEADERS = "Content-Type,Authorization,X-Api-Key"
+ALLOWED_HEADERS = "Content-Type,Authorization"
 TODO_STATUSES = ("todo", "in_progress", "done")
 
 
@@ -19,6 +19,9 @@ def create_handler(repository_factory=None):
 
         if method == "OPTIONS":
             return _response(204)
+
+        if not _is_authorized(event):
+            return _json_response(401, {"message": "unauthorized"})
 
         try:
             repository = repository_factory() if repository_factory else DynamoDbTodoRepository.from_env()
@@ -103,6 +106,48 @@ def _json_body(event):
         raise ValueError("request body must be a JSON object")
 
     return body
+
+
+def _is_authorized(event):
+    if os.environ.get("TODO_AUTH_MODE") != "cognito":
+        return True
+
+    if _has_cognito_claims(event):
+        return True
+
+    return _has_local_access_token(event)
+
+
+def _has_cognito_claims(event):
+    claims = (
+        event.get("requestContext", {})
+        .get("authorizer", {})
+        .get("jwt", {})
+        .get("claims", {})
+    )
+
+    return bool(claims.get("sub"))
+
+
+def _has_local_access_token(event):
+    local_access_token = os.environ.get("TODO_LOCAL_ACCESS_TOKEN")
+
+    if not local_access_token:
+        return False
+
+    authorization = _header(event, "authorization") or ""
+    return authorization == f"Bearer {local_access_token}"
+
+
+def _header(event, name):
+    headers = event.get("headers") or {}
+    normalized_name = name.lower()
+
+    for key, value in headers.items():
+        if key.lower() == normalized_name:
+            return value
+
+    return None
 
 
 def _title_from_body(body):

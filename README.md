@@ -37,6 +37,18 @@ frontend with:
 PUBLIC_TODO_API_BASE_URL=http://127.0.0.1:3000 npm run dev
 ```
 
+To test Cognito-mode authorization locally without a real Cognito token, start
+the API with `TODO_AUTH_MODE=cognito` and `TODO_LOCAL_ACCESS_TOKEN`, then pass
+the same value to the frontend:
+
+```bash
+TODO_AUTH_MODE=cognito TODO_LOCAL_ACCESS_TOKEN=local-token npm run dev:api
+PUBLIC_TODO_API_BASE_URL=http://127.0.0.1:3000 PUBLIC_TODO_ACCESS_TOKEN=local-token npm run dev
+```
+
+Production should use a Cognito user pool and API Gateway JWT authorizer. The
+frontend sends the Cognito access token as `Authorization: Bearer <token>`.
+
 For DynamoDB-backed local development, create a virtualenv and install the backend Python dependency:
 
 ```bash
