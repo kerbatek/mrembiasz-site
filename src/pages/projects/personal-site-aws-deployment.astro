@@ -1,4 +1,5 @@
 ---
+import PrimaryNav from "../../components/PrimaryNav.astro";
 import "../../styles/global.css";
 
 const decisions = [
@@ -46,16 +47,12 @@ const nextSteps = [
       name="description"
       content="Case study for deploying Mateusz Rembiasz's personal site on AWS with Astro, S3, CloudFront, ACM, and Terraform."
     />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Portfolio Architecture / Mateusz Rembiasz</title>
   </head>
   <body>
     <main class="container case-study">
-      <nav class="nav" aria-label="Primary navigation">
-        <a href="/">Home</a>
-        <a href="/projects/personal-site-aws-deployment/" aria-current="page">
-          Portfolio architecture
-        </a>
-      </nav>
+      <PrimaryNav currentPath="/projects/personal-site-aws-deployment/" />
 
       <header class="case-study-header">
         <h1 class="name">Portfolio Architecture Case Study</h1>
@@ -64,6 +61,16 @@ const nextSteps = [
           CloudFront distribution, Origin Access Control, ACM TLS, Terraform,
           and manually managed Cloudflare DNS.
         </p>
+        <div class="project-links">
+          <a
+            class="project-link"
+            href="https://github.com/kerbatek/mrembiasz-site"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            GitHub repository
+          </a>
+        </div>
       </header>
 
       <section class="section" aria-labelledby="overview-title">

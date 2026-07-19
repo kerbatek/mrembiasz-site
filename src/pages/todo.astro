@@ -1,0 +1,422 @@
+---
+import PrimaryNav from "../components/PrimaryNav.astro";
+import "../styles/global.css";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Personal todo list." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Todo List</title>
+  </head>
+  <body>
+    <main class="todo-shell" data-todo-app>
+      <PrimaryNav currentPath="/todo/" />
+
+      <header class="todo-header">
+        <div>
+          <p class="section-label">Personal tasks</p>
+          <h1>Todo List</h1>
+        </div>
+        <p class="todo-count" data-count>0 open</p>
+      </header>
+
+      <section class="todo-panel" aria-label="Todo list">
+        <form class="todo-form" data-create-form>
+          <label class="sr-only" for="todo-title">New task</label>
+          <input
+            id="todo-title"
+            data-title-input
+            name="title"
+            type="text"
+            autocomplete="off"
+            maxlength="160"
+            placeholder="Add a task"
+          />
+          <label class="sr-only" for="todo-priority">Priority</label>
+          <input
+            id="todo-priority"
+            data-priority-input
+            name="priority"
+            type="number"
+            step="1"
+            value="0"
+            aria-label="Priority"
+          />
+          <label class="sr-only" for="todo-status">Status</label>
+          <select id="todo-status" data-status-input name="status" aria-label="Status">
+            <option value="todo">Todo</option>
+            <option value="in_progress">In progress</option>
+            <option value="done">Done</option>
+          </select>
+          <label class="sr-only" for="todo-category">Category</label>
+          <input
+            id="todo-category"
+            data-category-input
+            name="category"
+            type="text"
+            maxlength="80"
+            placeholder="Category"
+          />
+          <label class="sr-only" for="todo-description">Description</label>
+          <textarea
+            id="todo-description"
+            data-description-input
+            name="description"
+            rows="2"
+            maxlength="500"
+            placeholder="Description"
+          ></textarea>
+          <button type="submit" title="Add task" aria-label="Add task">+</button>
+        </form>
+
+        <div class="todo-toolbar">
+          <div class="todo-filters" role="tablist" aria-label="Task filters">
+            <button type="button" data-filter="all" aria-selected="true">
+              All
+            </button>
+            <button type="button" data-filter="todo" aria-selected="false">
+              Todo
+            </button>
+            <button type="button" data-filter="in_progress" aria-selected="false">
+              In progress
+            </button>
+            <button type="button" data-filter="done" aria-selected="false">
+              Done
+            </button>
+          </div>
+          <button class="todo-refresh" type="button" data-refresh>
+            Refresh
+          </button>
+        </div>
+
+        <p class="todo-status" data-status aria-live="polite">Loading tasks</p>
+        <ul class="todo-list" data-list aria-label="Tasks"></ul>
+      </section>
+    </main>
+
+    <template data-empty-template>
+      <li class="todo-empty">No tasks here.</li>
+    </template>
+
+    <template data-item-template>
+      <li class="todo-item">
+        <form class="todo-edit" data-edit-form>
+          <label class="sr-only">Task title</label>
+          <input data-edit-title type="text" maxlength="160" />
+          <label class="sr-only">Priority</label>
+          <input data-edit-priority type="number" step="1" />
+          <label class="sr-only">Status</label>
+          <select data-edit-status>
+            <option value="todo">Todo</option>
+            <option value="in_progress">In progress</option>
+            <option value="done">Done</option>
+          </select>
+          <label class="sr-only">Category</label>
+          <input data-edit-category type="text" maxlength="80" />
+          <label class="sr-only">Description</label>
+          <textarea data-edit-description rows="2" maxlength="500"></textarea>
+          <button type="submit" class="todo-save">Save</button>
+        </form>
+        <button type="button" class="todo-delete" data-delete title="Delete task" aria-label="Delete task">
+          x
+        </button>
+      </li>
+    </template>
+
+    <script>
+      import {
+        createTodo,
+        deleteTodo,
+        listTodos,
+        updateTodo,
+      } from "../lib/todoApi.js";
+
+      const app = document.querySelector("[data-todo-app]");
+      const form = document.querySelector("[data-create-form]");
+      const titleInput = document.querySelector("[data-title-input]");
+      const priorityInput = document.querySelector("[data-priority-input]");
+      const statusInput = document.querySelector("[data-status-input]");
+      const categoryInput = document.querySelector("[data-category-input]");
+      const descriptionInput = document.querySelector("[data-description-input]");
+      const list = document.querySelector("[data-list]");
+      const status = document.querySelector("[data-status]");
+      const count = document.querySelector("[data-count]");
+      const refreshButton = document.querySelector("[data-refresh]");
+      const itemTemplate = document.querySelector("[data-item-template]");
+      const emptyTemplate = document.querySelector("[data-empty-template]");
+      const filterButtons = [...document.querySelectorAll("[data-filter]")];
+      const apiBaseUrl = import.meta.env.PUBLIC_TODO_API_BASE_URL || "/api";
+      const accessToken =
+        window.localStorage.getItem("todoAccessToken") ||
+        import.meta.env.PUBLIC_TODO_ACCESS_TOKEN ||
+        "";
+
+      let todos = [];
+      let activeFilter = "all";
+      let pendingIds = new Set();
+
+      function filteredTodos() {
+        if (activeFilter !== "all") {
+          return todos.filter((todo) => todo.status === activeFilter);
+        }
+
+        return todos;
+      }
+
+      function setStatus(message, tone = "neutral") {
+        status.textContent = message;
+        status.dataset.tone = tone;
+        status.hidden = !message;
+      }
+
+      function renderCount() {
+        const openCount = todos.filter((todo) => todo.status !== "done").length;
+        const label = openCount === 1 ? "open" : "open";
+        count.textContent = `${openCount} ${label}`;
+      }
+
+      function renderFilters() {
+        for (const button of filterButtons) {
+          button.setAttribute(
+            "aria-selected",
+            String(button.dataset.filter === activeFilter),
+          );
+        }
+      }
+
+      function renderTodos() {
+        list.replaceChildren();
+        const visibleTodos = filteredTodos();
+
+        if (visibleTodos.length === 0) {
+          list.append(emptyTemplate.content.cloneNode(true));
+          renderCount();
+          renderFilters();
+          return;
+        }
+
+        for (const todo of visibleTodos) {
+          const node = itemTemplate.content.cloneNode(true);
+          const item = node.querySelector(".todo-item");
+          const editForm = node.querySelector("[data-edit-form]");
+          const editTitle = node.querySelector("[data-edit-title]");
+          const editPriority = node.querySelector("[data-edit-priority]");
+          const editStatus = node.querySelector("[data-edit-status]");
+          const editCategory = node.querySelector("[data-edit-category]");
+          const editDescription = node.querySelector("[data-edit-description]");
+          const deleteButton = node.querySelector("[data-delete]");
+          const saveButton = node.querySelector(".todo-save");
+          const editControls = [
+            editTitle,
+            editPriority,
+            editStatus,
+            editCategory,
+            editDescription,
+            saveButton,
+          ];
+
+          item.dataset.completed = String(todo.completed);
+          item.dataset.status = todo.status;
+          item.dataset.pending = String(pendingIds.has(todo.id));
+          editTitle.value = todo.title;
+          editPriority.value = todo.priority;
+          editStatus.value = todo.status;
+          editCategory.value = todo.category;
+          editDescription.value = todo.description;
+          editControls.forEach((control) => {
+            control.disabled = pendingIds.has(todo.id);
+          });
+          deleteButton.disabled = pendingIds.has(todo.id);
+
+          editForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            updateExistingTodo(todo, todoChangesFromEditForm({
+              editTitle,
+              editPriority,
+              editStatus,
+              editCategory,
+              editDescription,
+            }));
+          });
+
+          editTitle.addEventListener("blur", () => {
+            updateExistingTodo(todo, { title: editTitle.value.trim() });
+          });
+          editPriority.addEventListener("change", () => {
+            updateExistingTodo(todo, { priority: integerFromInput(editPriority) });
+          });
+          editStatus.addEventListener("change", () => {
+            updateExistingTodo(todo, { status: editStatus.value });
+          });
+          editCategory.addEventListener("blur", () => {
+            updateExistingTodo(todo, { category: editCategory.value.trim() });
+          });
+          editDescription.addEventListener("blur", () => {
+            updateExistingTodo(todo, { description: editDescription.value.trim() });
+          });
+
+          deleteButton.addEventListener("click", () => {
+            removeTodo(todo);
+          });
+
+          list.append(node);
+        }
+
+        renderCount();
+        renderFilters();
+      }
+
+      async function withPending(todoId, action) {
+        pendingIds.add(todoId);
+        renderTodos();
+
+        try {
+          await action();
+        } finally {
+          pendingIds.delete(todoId);
+          renderTodos();
+        }
+      }
+
+      async function loadTodos() {
+        setStatus("Loading tasks");
+
+        try {
+          todos = await listTodos({ apiBaseUrl, accessToken });
+          setStatus("");
+        } catch (error) {
+          setStatus(error.message || "Could not load tasks", "error");
+        }
+
+        renderTodos();
+      }
+
+      function integerFromInput(input) {
+        const value = Number.parseInt(input.value, 10);
+        return Number.isNaN(value) ? 0 : value;
+      }
+
+      function todoChangesFromEditForm({
+        editTitle,
+        editPriority,
+        editStatus,
+        editCategory,
+        editDescription,
+      }) {
+        return {
+          title: editTitle.value.trim(),
+          priority: integerFromInput(editPriority),
+          status: editStatus.value,
+          category: editCategory.value.trim(),
+          description: editDescription.value.trim(),
+        };
+      }
+
+      function changedFields(todo, changes) {
+        return Object.fromEntries(
+          Object.entries(changes).filter(([key, value]) => todo[key] !== value),
+        );
+      }
+
+      async function addTodo() {
+        const normalizedTitle = titleInput.value.trim();
+
+        if (!normalizedTitle) {
+          titleInput.focus();
+          return;
+        }
+
+        form.dataset.pending = "true";
+
+        try {
+          const todo = await createTodo({
+            apiBaseUrl,
+            accessToken,
+            title: normalizedTitle,
+            priority: integerFromInput(priorityInput),
+            status: statusInput.value,
+            category: categoryInput.value.trim(),
+            description: descriptionInput.value.trim(),
+          });
+          todos = [todo, ...todos];
+          titleInput.value = "";
+          priorityInput.value = "0";
+          statusInput.value = "todo";
+          categoryInput.value = "";
+          descriptionInput.value = "";
+          setStatus("");
+        } catch (error) {
+          setStatus(error.message || "Could not add task", "error");
+        } finally {
+          form.dataset.pending = "false";
+          renderTodos();
+        }
+      }
+
+      async function updateExistingTodo(todo, changes) {
+        const normalizedChanges = changedFields(todo, changes);
+
+        if (
+          "title" in normalizedChanges &&
+          !String(normalizedChanges.title).trim()
+        ) {
+          renderTodos();
+          return;
+        }
+
+        if (Object.keys(normalizedChanges).length === 0) {
+          renderTodos();
+          return;
+        }
+
+        await withPending(todo.id, async () => {
+          try {
+            const updated = await updateTodo({
+              apiBaseUrl,
+              accessToken,
+              id: todo.id,
+              changes: normalizedChanges,
+            });
+            todos = todos.map((item) => (item.id === todo.id ? updated : item));
+            setStatus("");
+          } catch (error) {
+            setStatus(error.message || "Could not update task", "error");
+          }
+        });
+      }
+
+      async function removeTodo(todo) {
+        await withPending(todo.id, async () => {
+          try {
+            await deleteTodo({ apiBaseUrl, accessToken, id: todo.id });
+            todos = todos.filter((item) => item.id !== todo.id);
+            setStatus("");
+          } catch (error) {
+            setStatus(error.message || "Could not delete task", "error");
+          }
+        });
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        addTodo();
+      });
+
+      refreshButton.addEventListener("click", loadTodos);
+
+      for (const button of filterButtons) {
+        button.addEventListener("click", () => {
+          activeFilter = button.dataset.filter;
+          renderTodos();
+        });
+      }
+
+      app.dataset.ready = "true";
+      loadTodos();
+    </script>
+  </body>
+</html>
