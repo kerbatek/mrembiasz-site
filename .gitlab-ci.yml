@@ -8,4 +8,5 @@ workflow:
 
 include:
   - local: ".gitlab/ci/tests.yml"
+  - local: ".gitlab/ci/terraform.yml"
   - local: ".gitlab/ci/build.yml"
