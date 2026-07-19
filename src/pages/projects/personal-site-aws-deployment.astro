@@ -1,4 +1,5 @@
 ---
+import PrimaryNav from "../../components/PrimaryNav.astro";
 import "../../styles/global.css";
 
 const decisions = [
@@ -51,12 +52,7 @@ const nextSteps = [
   </head>
   <body>
     <main class="container case-study">
-      <nav class="nav" aria-label="Primary navigation">
-        <a href="/">Home</a>
-        <a href="/projects/personal-site-aws-deployment/" aria-current="page">
-          Portfolio architecture
-        </a>
-      </nav>
+      <PrimaryNav currentPath="/projects/personal-site-aws-deployment/" />
 
       <header class="case-study-header">
         <h1 class="name">Portfolio Architecture Case Study</h1>

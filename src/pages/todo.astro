@@ -1,0 +1,309 @@
+---
+import PrimaryNav from "../components/PrimaryNav.astro";
+import "../styles/global.css";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Personal todo list." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Todo List</title>
+  </head>
+  <body>
+    <main class="todo-shell" data-todo-app>
+      <PrimaryNav currentPath="/todo/" />
+
+      <header class="todo-header">
+        <div>
+          <p class="section-label">Personal tasks</p>
+          <h1>Todo List</h1>
+        </div>
+        <p class="todo-count" data-count>0 open</p>
+      </header>
+
+      <section class="todo-panel" aria-label="Todo list">
+        <form class="todo-form" data-create-form>
+          <label class="sr-only" for="todo-title">New task</label>
+          <input
+            id="todo-title"
+            data-title-input
+            name="title"
+            type="text"
+            autocomplete="off"
+            maxlength="160"
+            placeholder="Add a task"
+          />
+          <button type="submit" title="Add task" aria-label="Add task">+</button>
+        </form>
+
+        <div class="todo-toolbar">
+          <div class="todo-filters" role="tablist" aria-label="Task filters">
+            <button type="button" data-filter="all" aria-selected="true">
+              All
+            </button>
+            <button type="button" data-filter="active" aria-selected="false">
+              Open
+            </button>
+            <button type="button" data-filter="completed" aria-selected="false">
+              Done
+            </button>
+          </div>
+          <button class="todo-refresh" type="button" data-refresh>
+            Refresh
+          </button>
+        </div>
+
+        <p class="todo-status" data-status aria-live="polite">Loading tasks</p>
+        <ul class="todo-list" data-list aria-label="Tasks"></ul>
+      </section>
+    </main>
+
+    <template data-empty-template>
+      <li class="todo-empty">No tasks here.</li>
+    </template>
+
+    <template data-item-template>
+      <li class="todo-item">
+        <label class="todo-check">
+          <input type="checkbox" data-complete />
+          <span></span>
+        </label>
+        <form class="todo-edit" data-edit-form>
+          <label class="sr-only">Task title</label>
+          <input data-edit-title type="text" maxlength="160" />
+        </form>
+        <button type="button" class="todo-delete" data-delete title="Delete task" aria-label="Delete task">
+          x
+        </button>
+      </li>
+    </template>
+
+    <script>
+      import {
+        createTodo,
+        deleteTodo,
+        listTodos,
+        updateTodo,
+      } from "../lib/todoApi.js";
+
+      const app = document.querySelector("[data-todo-app]");
+      const form = document.querySelector("[data-create-form]");
+      const titleInput = document.querySelector("[data-title-input]");
+      const list = document.querySelector("[data-list]");
+      const status = document.querySelector("[data-status]");
+      const count = document.querySelector("[data-count]");
+      const refreshButton = document.querySelector("[data-refresh]");
+      const itemTemplate = document.querySelector("[data-item-template]");
+      const emptyTemplate = document.querySelector("[data-empty-template]");
+      const filterButtons = [...document.querySelectorAll("[data-filter]")];
+      const apiBaseUrl = import.meta.env.PUBLIC_TODO_API_BASE_URL || "/api";
+
+      let todos = [];
+      let activeFilter = "all";
+      let pendingIds = new Set();
+
+      function filteredTodos() {
+        if (activeFilter === "active") {
+          return todos.filter((todo) => !todo.completed);
+        }
+
+        if (activeFilter === "completed") {
+          return todos.filter((todo) => todo.completed);
+        }
+
+        return todos;
+      }
+
+      function setStatus(message, tone = "neutral") {
+        status.textContent = message;
+        status.dataset.tone = tone;
+        status.hidden = !message;
+      }
+
+      function renderCount() {
+        const openCount = todos.filter((todo) => !todo.completed).length;
+        const label = openCount === 1 ? "open" : "open";
+        count.textContent = `${openCount} ${label}`;
+      }
+
+      function renderFilters() {
+        for (const button of filterButtons) {
+          button.setAttribute(
+            "aria-selected",
+            String(button.dataset.filter === activeFilter),
+          );
+        }
+      }
+
+      function renderTodos() {
+        list.replaceChildren();
+        const visibleTodos = filteredTodos();
+
+        if (visibleTodos.length === 0) {
+          list.append(emptyTemplate.content.cloneNode(true));
+          renderCount();
+          renderFilters();
+          return;
+        }
+
+        for (const todo of visibleTodos) {
+          const node = itemTemplate.content.cloneNode(true);
+          const item = node.querySelector(".todo-item");
+          const checkbox = node.querySelector("[data-complete]");
+          const editForm = node.querySelector("[data-edit-form]");
+          const editTitle = node.querySelector("[data-edit-title]");
+          const deleteButton = node.querySelector("[data-delete]");
+
+          item.dataset.completed = String(todo.completed);
+          item.dataset.pending = String(pendingIds.has(todo.id));
+          checkbox.checked = todo.completed;
+          checkbox.disabled = pendingIds.has(todo.id);
+          editTitle.value = todo.title;
+          editTitle.disabled = pendingIds.has(todo.id);
+          deleteButton.disabled = pendingIds.has(todo.id);
+
+          checkbox.addEventListener("change", () => {
+            toggleTodo(todo, checkbox.checked);
+          });
+
+          editForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            renameTodo(todo, editTitle.value);
+          });
+
+          editTitle.addEventListener("blur", () => {
+            renameTodo(todo, editTitle.value);
+          });
+
+          deleteButton.addEventListener("click", () => {
+            removeTodo(todo);
+          });
+
+          list.append(node);
+        }
+
+        renderCount();
+        renderFilters();
+      }
+
+      async function withPending(todoId, action) {
+        pendingIds.add(todoId);
+        renderTodos();
+
+        try {
+          await action();
+        } finally {
+          pendingIds.delete(todoId);
+          renderTodos();
+        }
+      }
+
+      async function loadTodos() {
+        setStatus("Loading tasks");
+
+        try {
+          todos = await listTodos({ apiBaseUrl });
+          setStatus("");
+        } catch (error) {
+          setStatus(error.message || "Could not load tasks", "error");
+        }
+
+        renderTodos();
+      }
+
+      async function addTodo(title) {
+        const normalizedTitle = title.trim();
+
+        if (!normalizedTitle) {
+          titleInput.focus();
+          return;
+        }
+
+        form.dataset.pending = "true";
+
+        try {
+          const todo = await createTodo({ apiBaseUrl, title: normalizedTitle });
+          todos = [todo, ...todos];
+          titleInput.value = "";
+          setStatus("");
+        } catch (error) {
+          setStatus(error.message || "Could not add task", "error");
+        } finally {
+          form.dataset.pending = "false";
+          renderTodos();
+        }
+      }
+
+      async function toggleTodo(todo, completed) {
+        await withPending(todo.id, async () => {
+          try {
+            const updated = await updateTodo({
+              apiBaseUrl,
+              id: todo.id,
+              changes: { completed },
+            });
+            todos = todos.map((item) => (item.id === todo.id ? updated : item));
+            setStatus("");
+          } catch (error) {
+            setStatus(error.message || "Could not update task", "error");
+          }
+        });
+      }
+
+      async function renameTodo(todo, title) {
+        const normalizedTitle = title.trim();
+
+        if (!normalizedTitle || normalizedTitle === todo.title) {
+          renderTodos();
+          return;
+        }
+
+        await withPending(todo.id, async () => {
+          try {
+            const updated = await updateTodo({
+              apiBaseUrl,
+              id: todo.id,
+              changes: { title: normalizedTitle },
+            });
+            todos = todos.map((item) => (item.id === todo.id ? updated : item));
+            setStatus("");
+          } catch (error) {
+            setStatus(error.message || "Could not rename task", "error");
+          }
+        });
+      }
+
+      async function removeTodo(todo) {
+        await withPending(todo.id, async () => {
+          try {
+            await deleteTodo({ apiBaseUrl, id: todo.id });
+            todos = todos.filter((item) => item.id !== todo.id);
+            setStatus("");
+          } catch (error) {
+            setStatus(error.message || "Could not delete task", "error");
+          }
+        });
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        addTodo(titleInput.value);
+      });
+
+      refreshButton.addEventListener("click", loadTodos);
+
+      for (const button of filterButtons) {
+        button.addEventListener("click", () => {
+          activeFilter = button.dataset.filter;
+          renderTodos();
+        });
+      }
+
+      app.dataset.ready = "true";
+      loadTodos();
+    </script>
+  </body>
+</html>

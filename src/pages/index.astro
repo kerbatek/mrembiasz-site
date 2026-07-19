@@ -1,4 +1,5 @@
 ---
+import PrimaryNav from "../components/PrimaryNav.astro";
 import "../styles/global.css";
 
 const interests = [
@@ -118,12 +119,7 @@ const socialLinks = [
   </head>
   <body>
     <main class="container index-page">
-      <nav class="nav" aria-label="Primary navigation">
-        <a href="/" aria-current="page">Home</a>
-        <a href="/projects/personal-site-aws-deployment/">
-          Portfolio architecture
-        </a>
-      </nav>
+      <PrimaryNav currentPath="/" />
 
       <h1 class="name">Mateusz Rembiasz</h1>
       <p class="status">Cloud &amp; DevOps</p>
