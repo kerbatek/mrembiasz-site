@@ -6,6 +6,10 @@ const source = await readFile(
   new URL("../src/pages/todo.astro", import.meta.url),
   "utf8",
 );
+const controllerSource = await readFile(
+  new URL("../src/lib/todoPage.ts", import.meta.url),
+  "utf8",
+);
 
 test("todo page exposes create controls for the full todo model", () => {
   for (const marker of [
@@ -42,13 +46,14 @@ test("todo item template exposes editable metadata fields", () => {
 });
 
 test("todo page exposes Cognito auth controls", () => {
+  for (const marker of ["data-auth-panel", "data-login", "data-logout"]) {
+    assert.match(source, new RegExp(marker));
+  }
+
   for (const marker of [
-    "data-auth-panel",
-    "data-login",
-    "data-logout",
     "PUBLIC_TODO_COGNITO_DOMAIN",
     "PUBLIC_TODO_COGNITO_CLIENT_ID",
   ]) {
-    assert.match(source, new RegExp(marker));
+    assert.match(controllerSource, new RegExp(marker));
   }
 });

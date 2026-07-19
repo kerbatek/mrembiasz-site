@@ -9,7 +9,10 @@
     "dev:api:dynamodb": "TODO_TABLE_NAME=personal-todos TODO_DYNAMODB_ENDPOINT=http://127.0.0.1:8000 AWS_ACCESS_KEY_ID=local AWS_SECRET_ACCESS_KEY=local AWS_DEFAULT_REGION=us-east-1 .venv/bin/python -m backend.todo_api.local_dev --storage dynamodb",
     "dynamodb:local": "docker compose up dynamodb-local",
     "dynamodb:bootstrap": "TODO_TABLE_NAME=personal-todos TODO_DYNAMODB_ENDPOINT=http://127.0.0.1:8000 AWS_ACCESS_KEY_ID=local AWS_SECRET_ACCESS_KEY=local AWS_DEFAULT_REGION=us-east-1 .venv/bin/python -m backend.todo_api.bootstrap_local_dynamodb",
-    "lint:frontend": "prettier --check .",
+    "lint:frontend": "npm run lint:frontend:format && npm run lint:frontend:code && npm run lint:frontend:types",
+    "lint:frontend:format": "prettier --check .",
+    "lint:frontend:code": "eslint .",
+    "lint:frontend:types": "ASTRO_TELEMETRY_DISABLED=1 astro check",
     "lint:backend": "ruff check backend tests/backend tests/integration",
     "format:backend": "ruff format backend tests/backend tests/integration",
     "format:backend:check": "ruff format --check backend tests/backend tests/integration",
@@ -23,7 +26,14 @@
     "astro": "^7.0.7"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.7.0",
+    "eslint-plugin-astro": "^3.0.1",
+    "eslint-plugin-sonarjs": "^4.2.0",
+    "globals": "^17.7.0",
     "prettier": "^3.9.5",
-    "prettier-plugin-astro": "^0.14.1"
+    "prettier-plugin-astro": "^0.14.1",
+    "typescript": "^6.0.3"
   }
 }

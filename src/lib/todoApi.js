@@ -1,20 +1,41 @@
 function apiUrl(apiBaseUrl, path) {
-  const base = apiBaseUrl.replace(/\/+$/, "");
+  const base = trimTrailingSlashes(apiBaseUrl);
   return `${base}${path}`;
 }
 
+function trimTrailingSlashes(value) {
+  const text = String(value || "");
+  let end = text.length;
+
+  while (end > 0 && text[end - 1] === "/") {
+    end -= 1;
+  }
+
+  return text.slice(0, end);
+}
+
 function todoFromApi(todo) {
+  const completed = Boolean(todo.completed);
+
   return {
     id: String(todo.id),
     title: String(todo.title ?? ""),
     priority: Number.isInteger(todo.priority) ? todo.priority : 0,
-    status: String(todo.status ?? (todo.completed ? "done" : "todo")),
+    status: todoStatus(todo.status, completed),
     category: String(todo.category ?? ""),
     description: String(todo.description ?? ""),
-    completed: Boolean(todo.completed),
-    createdAt: todo.createdAt ? new Date(todo.createdAt) : null,
-    updatedAt: todo.updatedAt ? new Date(todo.updatedAt) : null,
+    completed,
+    createdAt: dateOrNull(todo.createdAt),
+    updatedAt: dateOrNull(todo.updatedAt),
   };
+}
+
+function todoStatus(status, completed) {
+  return String(status ?? (completed ? "done" : "todo"));
+}
+
+function dateOrNull(value) {
+  return value ? new Date(value) : null;
 }
 
 async function parseJson(response) {

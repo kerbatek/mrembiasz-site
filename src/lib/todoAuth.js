@@ -24,10 +24,7 @@ function cryptoOrDefault(crypto) {
 
 function base64Url(bytes) {
   const binary = String.fromCharCode(...bytes);
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+  return btoa(binary).split("+").join("-").split("/").join("_").split("=")[0];
 }
 
 function randomString(crypto, byteLength = 32) {
@@ -43,7 +40,18 @@ async function sha256Base64Url(value, crypto) {
 }
 
 function normalizedDomain(domain) {
-  return String(domain || "").replace(/\/+$/, "");
+  return trimTrailingSlashes(domain);
+}
+
+function trimTrailingSlashes(value) {
+  const text = String(value || "");
+  let end = text.length;
+
+  while (end > 0 && text[end - 1] === "/") {
+    end -= 1;
+  }
+
+  return text.slice(0, end);
 }
 
 function requireAuthConfig({ domain, clientId, redirectUri }) {
@@ -60,20 +68,29 @@ export function getStoredTodoSession({ storage, now = () => Date.now() } = {}) {
     return null;
   }
 
-  const expiresAt = Number.parseInt(
-    sessionStorage.getItem(EXPIRES_AT_KEY) || "0",
-    10,
-  );
+  const expiresAt = storedExpiresAt(sessionStorage);
 
-  if (expiresAt && expiresAt <= now()) {
+  if (isExpired(expiresAt, now)) {
     clearTodoSession({ storage: sessionStorage });
     return null;
   }
 
+  return sessionFromStorage(sessionStorage, accessToken, expiresAt);
+}
+
+function storedExpiresAt(storage) {
+  return Number.parseInt(storage.getItem(EXPIRES_AT_KEY) || "0", 10);
+}
+
+function isExpired(expiresAt, now) {
+  return Boolean(expiresAt && expiresAt <= now());
+}
+
+function sessionFromStorage(storage, accessToken, expiresAt) {
   return {
     accessToken,
-    idToken: sessionStorage.getItem(ID_TOKEN_KEY) || "",
-    refreshToken: sessionStorage.getItem(REFRESH_TOKEN_KEY) || "",
+    idToken: storage.getItem(ID_TOKEN_KEY) || "",
+    refreshToken: storage.getItem(REFRESH_TOKEN_KEY) || "",
     expiresAt,
   };
 }
@@ -134,16 +151,40 @@ export async function completeTodoLogin({
   requireAuthConfig({ domain, clientId, redirectUri });
 
   const url = new URL(currentUrl);
-  const code = url.searchParams.get("code");
-  const state = url.searchParams.get("state");
+  const redirect = redirectParams(url);
 
-  if (!code) {
+  if (!redirect.code) {
     return getStoredTodoSession({ storage, now });
   }
 
   const sessionStorage = storageOrDefault(storage);
-  const expectedState = sessionStorage.getItem(OAUTH_STATE_KEY);
-  const verifier = sessionStorage.getItem(PKCE_VERIFIER_KEY);
+  const verifier = verifiedPkceVerifier(sessionStorage, redirect.state);
+  const token = await exchangeCodeForToken({
+    domain,
+    clientId,
+    redirectUri,
+    code: redirect.code,
+    verifier,
+    fetch,
+  });
+  const expiresAt = now() + Number(token.expires_in || 3600) * 1000;
+
+  storeTokenSession(sessionStorage, token, expiresAt);
+  clearRedirectParams(url, history);
+
+  return getStoredTodoSession({ storage: sessionStorage, now });
+}
+
+function redirectParams(url) {
+  return {
+    code: url.searchParams.get("code"),
+    state: url.searchParams.get("state"),
+  };
+}
+
+function verifiedPkceVerifier(storage, state) {
+  const expectedState = storage.getItem(OAUTH_STATE_KEY);
+  const verifier = storage.getItem(PKCE_VERIFIER_KEY);
 
   if (!expectedState || expectedState !== state) {
     throw new Error("OAuth state did not match");
@@ -153,6 +194,17 @@ export async function completeTodoLogin({
     throw new Error("PKCE verifier is missing");
   }
 
+  return verifier;
+}
+
+async function exchangeCodeForToken({
+  domain,
+  clientId,
+  redirectUri,
+  code,
+  verifier,
+  fetch,
+}) {
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     client_id: clientId,
@@ -172,21 +224,22 @@ export async function completeTodoLogin({
     );
   }
 
-  const token = await response.json();
-  const expiresAt = now() + Number(token.expires_in || 3600) * 1000;
+  return response.json();
+}
 
-  sessionStorage.setItem(ACCESS_TOKEN_KEY, token.access_token || "");
-  sessionStorage.setItem(ID_TOKEN_KEY, token.id_token || "");
-  sessionStorage.setItem(REFRESH_TOKEN_KEY, token.refresh_token || "");
-  sessionStorage.setItem(EXPIRES_AT_KEY, String(expiresAt));
-  sessionStorage.removeItem(PKCE_VERIFIER_KEY);
-  sessionStorage.removeItem(OAUTH_STATE_KEY);
+function storeTokenSession(storage, token, expiresAt) {
+  storage.setItem(ACCESS_TOKEN_KEY, token.access_token || "");
+  storage.setItem(ID_TOKEN_KEY, token.id_token || "");
+  storage.setItem(REFRESH_TOKEN_KEY, token.refresh_token || "");
+  storage.setItem(EXPIRES_AT_KEY, String(expiresAt));
+  storage.removeItem(PKCE_VERIFIER_KEY);
+  storage.removeItem(OAUTH_STATE_KEY);
+}
 
+function clearRedirectParams(url, history) {
   url.searchParams.delete("code");
   url.searchParams.delete("state");
   history?.replaceState?.({}, "", `${url.pathname}${url.search}${url.hash}`);
-
-  return getStoredTodoSession({ storage: sessionStorage, now });
 }
 
 export function todoLogoutUrl({ domain, clientId, logoutUri, storage }) {
