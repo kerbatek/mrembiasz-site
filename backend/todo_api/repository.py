@@ -16,10 +16,16 @@ class DynamoDbTodoRepository:
 
         import boto3
 
-        return cls(boto3.resource("dynamodb").Table(table_name))
+        resource_kwargs = {}
+        endpoint_url = os.environ.get("TODO_DYNAMODB_ENDPOINT")
+
+        if endpoint_url:
+            resource_kwargs["endpoint_url"] = endpoint_url
+
+        return cls(boto3.resource("dynamodb", **resource_kwargs).Table(table_name))
 
     def list_todos(self):
-        response = self.table.scan()
+        response = self.table.scan(ConsistentRead=True)
         todos = [_todo_from_item(item) for item in response.get("Items", [])]
         return sorted(todos, key=lambda todo: todo["createdAt"], reverse=True)
 

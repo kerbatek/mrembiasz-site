@@ -383,14 +383,18 @@ body {
 
 .todo-form {
   display: grid;
-  grid-template-columns: 1fr 2.75rem;
+  grid-template-columns: minmax(12rem, 1fr) 5rem 8.25rem minmax(8rem, 0.7fr) 2.75rem;
   gap: 0.6rem;
   padding: 0.85rem;
   border-bottom: 1px solid var(--border);
 }
 
 .todo-form input,
-.todo-edit input {
+.todo-form select,
+.todo-form textarea,
+.todo-edit input,
+.todo-edit select,
+.todo-edit textarea {
   min-width: 0;
   width: 100%;
   border: 1px solid #52525b;
@@ -402,8 +406,17 @@ body {
   font-size: 0.9rem;
 }
 
+.todo-form textarea {
+  grid-column: 1 / -2;
+  resize: vertical;
+}
+
 .todo-form input:focus,
-.todo-edit input:focus {
+.todo-form select:focus,
+.todo-form textarea:focus,
+.todo-edit input:focus,
+.todo-edit select:focus,
+.todo-edit textarea:focus {
   outline: 2px solid #93c5fd;
   outline-offset: 2px;
   border-color: #93c5fd;
@@ -503,11 +516,11 @@ body {
 
 .todo-item {
   display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr) 2.25rem;
-  gap: 0.55rem;
-  align-items: center;
-  min-height: 3.75rem;
-  padding: 0.65rem 0.85rem;
+  grid-template-columns: minmax(0, 1fr) 2.25rem;
+  gap: 0.7rem;
+  align-items: start;
+  min-height: 5.25rem;
+  padding: 0.78rem 0.85rem;
   border-top: 1px solid #2f2f35;
 }
 
@@ -515,51 +528,23 @@ body {
   opacity: 0.6;
 }
 
-.todo-check {
+.todo-edit {
   display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
+  grid-template-columns: minmax(12rem, 1fr) 4.75rem 8.25rem minmax(7rem, 0.55fr) 3.8rem;
+  gap: 0.5rem;
+  align-items: start;
 }
 
-.todo-check input {
-  position: absolute;
-  opacity: 0;
-}
-
-.todo-check span {
-  display: grid;
-  place-items: center;
-  width: 1.15rem;
-  height: 1.15rem;
-  border: 1px solid #71717a;
-  border-radius: 4px;
-  background: #18181b;
-}
-
-.todo-check input:checked + span {
-  border-color: #22c55e;
-  background: #166534;
-}
-
-.todo-check input:checked + span::after {
-  content: "";
-  width: 0.42rem;
-  height: 0.68rem;
-  border-right: 2px solid #dcfce7;
-  border-bottom: 2px solid #dcfce7;
-  transform: translateY(-1px) rotate(45deg);
-}
-
-.todo-check input:focus-visible + span {
-  outline: 2px solid #93c5fd;
-  outline-offset: 3px;
-}
-
-.todo-edit input {
+.todo-edit input,
+.todo-edit select,
+.todo-edit textarea {
   border-color: transparent;
   background: transparent;
-  padding-left: 0.2rem;
+}
+
+.todo-edit textarea {
+  grid-column: 1 / -2;
+  resize: vertical;
 }
 
 .todo-item[data-completed="true"] .todo-edit input {
@@ -572,6 +557,23 @@ body {
   height: 2.25rem;
   color: #fecaca;
   font-size: 0.82rem;
+}
+
+.todo-save {
+  min-height: 2.45rem;
+  border: 1px solid #52525b;
+  border-radius: 6px;
+  color: #bfdbfe;
+  background: #1e3a5f;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.todo-save:hover {
+  border-color: #93c5fd;
 }
 
 .todo-empty {
@@ -605,9 +607,23 @@ body {
     padding: 0.7rem;
   }
 
+  .todo-form textarea,
+  .todo-form select,
+  .todo-form input:not([data-title-input]) {
+    grid-column: 1 / -1;
+  }
+
   .todo-item {
-    grid-template-columns: 1.8rem minmax(0, 1fr) 2.1rem;
+    grid-template-columns: minmax(0, 1fr) 2.1rem;
     padding: 0.58rem 0.7rem;
+  }
+
+  .todo-edit {
+    grid-template-columns: 1fr;
+  }
+
+  .todo-edit textarea {
+    grid-column: 1;
   }
 
   .project-header {

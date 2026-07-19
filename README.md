@@ -23,6 +23,55 @@ Run the local dev server:
 npm run dev
 ```
 
+Run the local Todo API server:
+
+```bash
+npm run dev:api
+```
+
+The local Todo API listens on `http://127.0.0.1:3000`, stores tasks in memory,
+and resets when the process stops. To point the Astro todo page at it, run the
+frontend with:
+
+```bash
+PUBLIC_TODO_API_BASE_URL=http://127.0.0.1:3000 npm run dev
+```
+
+For DynamoDB-backed local development, create a virtualenv and install the backend Python dependency:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r backend/requirements.txt
+```
+
+Start DynamoDB Local with Docker:
+
+```bash
+npm run dynamodb:local
+```
+
+In another terminal, create the local table:
+
+```bash
+npm run dynamodb:bootstrap
+```
+
+Then run the Todo API against DynamoDB Local:
+
+```bash
+npm run dev:api:dynamodb
+```
+
+The DynamoDB Local endpoint is `http://127.0.0.1:8000`, and the default local
+table name is `personal-todos`.
+
+Run tests:
+
+```bash
+npm test
+npm run test:backend
+```
+
 Build the static production files:
 
 ```bash

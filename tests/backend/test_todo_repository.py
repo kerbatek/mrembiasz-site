@@ -1,4 +1,5 @@
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from backend.todo_api.repository import DynamoDbTodoRepository
@@ -9,8 +10,10 @@ class FakeDynamoDbTable:
         self.items = {item["id"]: item.copy() for item in items or []}
         self.put_items = []
         self.deleted_keys = []
+        self.scan_kwargs = []
 
-    def scan(self):
+    def scan(self, **kwargs):
+        self.scan_kwargs.append(kwargs)
         return {"Items": list(self.items.values())}
 
     def put_item(self, Item):
@@ -27,6 +30,44 @@ class FakeDynamoDbTable:
 
 
 class TodoRepositoryTest(unittest.TestCase):
+    def test_from_env_uses_table_name_and_optional_local_endpoint(self):
+        class FakeDynamoDbResource:
+            def __init__(self):
+                self.table_name = None
+
+            def Table(self, table_name):
+                self.table_name = table_name
+                return FakeDynamoDbTable()
+
+        fake_resource = FakeDynamoDbResource()
+        calls = []
+
+        def fake_resource_factory(service_name, **kwargs):
+            calls.append((service_name, kwargs))
+            return fake_resource
+
+        with (
+            patch.dict(
+                "os.environ",
+                {
+                    "TODO_TABLE_NAME": "personal-todos",
+                    "TODO_DYNAMODB_ENDPOINT": "http://127.0.0.1:8000",
+                },
+                clear=True,
+            ),
+            patch.dict("sys.modules", {"boto3": SimpleNamespace(resource=fake_resource_factory)}),
+        ):
+            repository = DynamoDbTodoRepository.from_env()
+
+        self.assertIsInstance(repository.table, FakeDynamoDbTable)
+        self.assertEqual(fake_resource.table_name, "personal-todos")
+        self.assertEqual(calls, [("dynamodb", {"endpoint_url": "http://127.0.0.1:8000"})])
+
+    def test_from_env_requires_table_name(self):
+        with patch.dict("os.environ", {}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "TODO_TABLE_NAME is required"):
+                DynamoDbTodoRepository.from_env()
+
     def test_list_todos_normalizes_legacy_items_and_sorts_newest_first(self):
         table = FakeDynamoDbTable(
             [
@@ -54,6 +95,7 @@ class TodoRepositoryTest(unittest.TestCase):
         todos = DynamoDbTodoRepository(table).list_todos()
 
         self.assertEqual([todo["id"] for todo in todos], ["newer", "older"])
+        self.assertEqual(table.scan_kwargs, [{"ConsistentRead": True}])
         self.assertEqual(todos[1]["priority"], 0)
         self.assertEqual(todos[1]["status"], "todo")
         self.assertEqual(todos[1]["category"], "")
