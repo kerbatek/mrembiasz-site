@@ -48,6 +48,19 @@ PUBLIC_TODO_API_BASE_URL=http://127.0.0.1:3000 PUBLIC_TODO_ACCESS_TOKEN=local-to
 
 Production should use a Cognito user pool and API Gateway JWT authorizer. The
 frontend sends the Cognito access token as `Authorization: Bearer <token>`.
+For a deployed build, configure these public Astro variables:
+
+```bash
+PUBLIC_TODO_API_BASE_URL=https://your-api-id.execute-api.eu-central-1.amazonaws.com
+PUBLIC_TODO_COGNITO_DOMAIN=https://your-cognito-domain.auth.eu-central-1.amazoncognito.com
+PUBLIC_TODO_COGNITO_CLIENT_ID=your-app-client-id
+PUBLIC_TODO_COGNITO_REDIRECT_URI=https://your-site.example.com/todo/
+PUBLIC_TODO_COGNITO_LOGOUT_URI=https://your-site.example.com/todo/
+```
+
+The todo page uses Cognito Hosted UI with authorization-code + PKCE, stores the
+short-lived access token in browser storage, and sends it to the API on each
+todo request.
 
 For DynamoDB-backed local development, create a virtualenv and install the backend Python dependency:
 
@@ -159,6 +172,41 @@ scripts/deploy-static-site.sh
 The deploy script builds the Astro site and syncs `dist/` to S3.
 HTML is uploaded with `Cache-Control: public, max-age=60`; non-HTML build
 assets are uploaded with `Cache-Control: public, max-age=31536000, immutable`.
+
+## AWS personal todo API
+
+Terraform for the todo API lives in `infra/aws-personal-todo`.
+
+It creates:
+
+- Cognito user pool and SPA app client
+- API Gateway HTTP API with a Cognito JWT authorizer
+- Lambda function for the todo API
+- DynamoDB table for todo storage
+- IAM permissions and Lambda logs
+
+Create your variables file:
+
+```bash
+cp infra/aws-personal-todo/terraform.tfvars.example infra/aws-personal-todo/terraform.tfvars
+```
+
+Edit callback/logout URLs, allowed origins, and optionally
+`cognito_domain_prefix`. Then initialize and plan:
+
+```bash
+terraform -chdir=infra/aws-personal-todo init
+terraform -chdir=infra/aws-personal-todo plan
+```
+
+After apply, use these outputs for frontend configuration:
+
+```bash
+terraform -chdir=infra/aws-personal-todo output api_endpoint
+terraform -chdir=infra/aws-personal-todo output cognito_user_pool_client_id
+terraform -chdir=infra/aws-personal-todo output cognito_issuer
+terraform -chdir=infra/aws-personal-todo output cognito_hosted_ui_base_url
+```
 
 ## Container
 

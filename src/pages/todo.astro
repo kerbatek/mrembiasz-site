@@ -21,8 +21,20 @@ import "../styles/global.css";
           <p class="section-label">Personal tasks</p>
           <h1>Todo List</h1>
         </div>
-        <p class="todo-count" data-count>0 open</p>
+        <div class="todo-header-actions">
+          <p class="todo-count" data-count>0 open</p>
+          <button class="todo-auth-button" type="button" data-login>
+            Sign in
+          </button>
+          <button class="todo-auth-button" type="button" data-logout hidden>
+            Sign out
+          </button>
+        </div>
       </header>
+
+      <section class="todo-auth-panel" data-auth-panel aria-live="polite">
+        Sign in with Cognito to load your tasks.
+      </section>
 
       <section class="todo-panel" aria-label="Todo list">
         <form class="todo-form" data-create-form>
@@ -134,8 +146,18 @@ import "../styles/global.css";
         listTodos,
         updateTodo,
       } from "../lib/todoApi.js";
+      import {
+        beginTodoLogin,
+        clearTodoSession,
+        completeTodoLogin,
+        getStoredTodoSession,
+        todoLogoutUrl,
+      } from "../lib/todoAuth.js";
 
       const app = document.querySelector("[data-todo-app]");
+      const authPanel = document.querySelector("[data-auth-panel]");
+      const loginButton = document.querySelector("[data-login]");
+      const logoutButton = document.querySelector("[data-logout]");
       const form = document.querySelector("[data-create-form]");
       const titleInput = document.querySelector("[data-title-input]");
       const priorityInput = document.querySelector("[data-priority-input]");
@@ -150,14 +172,62 @@ import "../styles/global.css";
       const emptyTemplate = document.querySelector("[data-empty-template]");
       const filterButtons = [...document.querySelectorAll("[data-filter]")];
       const apiBaseUrl = import.meta.env.PUBLIC_TODO_API_BASE_URL || "/api";
-      const accessToken =
-        window.localStorage.getItem("todoAccessToken") ||
-        import.meta.env.PUBLIC_TODO_ACCESS_TOKEN ||
-        "";
+      const authConfig = {
+        domain: import.meta.env.PUBLIC_TODO_COGNITO_DOMAIN || "",
+        clientId: import.meta.env.PUBLIC_TODO_COGNITO_CLIENT_ID || "",
+        redirectUri:
+          import.meta.env.PUBLIC_TODO_COGNITO_REDIRECT_URI ||
+          `${window.location.origin}/todo/`,
+        logoutUri:
+          import.meta.env.PUBLIC_TODO_COGNITO_LOGOUT_URI ||
+          `${window.location.origin}/todo/`,
+        scopes: import.meta.env.PUBLIC_TODO_COGNITO_SCOPES || "openid email profile",
+      };
 
       let todos = [];
       let activeFilter = "all";
       let pendingIds = new Set();
+      let authSession = getStoredTodoSession() || legacyLocalSession();
+
+      function hasCognitoConfig() {
+        return Boolean(authConfig.domain && authConfig.clientId);
+      }
+
+      function legacyLocalSession() {
+        const token = import.meta.env.PUBLIC_TODO_ACCESS_TOKEN || "";
+        return token ? { accessToken: token } : null;
+      }
+
+      function accessToken() {
+        return authSession?.accessToken || "";
+      }
+
+      function isAuthenticated() {
+        return Boolean(accessToken());
+      }
+
+      function renderAuth() {
+        const configured = hasCognitoConfig();
+        const authenticated = isAuthenticated();
+
+        loginButton.hidden = authenticated || !configured;
+        logoutButton.hidden = !authenticated || !configured;
+        form.dataset.authenticated = String(authenticated);
+        refreshButton.disabled = !authenticated;
+
+        if (!authenticated) {
+          authPanel.hidden = false;
+          authPanel.textContent = configured
+            ? "Sign in with Cognito to load your tasks."
+            : "Cognito is not configured for this build.";
+          authPanel.dataset.tone = configured ? "neutral" : "error";
+          return;
+        }
+
+        authPanel.hidden = true;
+        authPanel.textContent = "";
+        authPanel.dataset.tone = "neutral";
+      }
 
       function filteredTodos() {
         if (activeFilter !== "all") {
@@ -283,12 +353,26 @@ import "../styles/global.css";
       }
 
       async function loadTodos() {
+        if (!isAuthenticated()) {
+          todos = [];
+          setStatus("");
+          renderTodos();
+          renderAuth();
+          return;
+        }
+
         setStatus("Loading tasks");
 
         try {
-          todos = await listTodos({ apiBaseUrl, accessToken });
+          todos = await listTodos({ apiBaseUrl, accessToken: accessToken() });
           setStatus("");
         } catch (error) {
+          if (error.message === "unauthorized") {
+            clearTodoSession();
+            authSession = null;
+            renderAuth();
+          }
+
           setStatus(error.message || "Could not load tasks", "error");
         }
 
@@ -335,7 +419,7 @@ import "../styles/global.css";
         try {
           const todo = await createTodo({
             apiBaseUrl,
-            accessToken,
+            accessToken: accessToken(),
             title: normalizedTitle,
             priority: integerFromInput(priorityInput),
             status: statusInput.value,
@@ -377,7 +461,7 @@ import "../styles/global.css";
           try {
             const updated = await updateTodo({
               apiBaseUrl,
-              accessToken,
+              accessToken: accessToken(),
               id: todo.id,
               changes: normalizedChanges,
             });
@@ -392,7 +476,7 @@ import "../styles/global.css";
       async function removeTodo(todo) {
         await withPending(todo.id, async () => {
           try {
-            await deleteTodo({ apiBaseUrl, accessToken, id: todo.id });
+            await deleteTodo({ apiBaseUrl, accessToken: accessToken(), id: todo.id });
             todos = todos.filter((item) => item.id !== todo.id);
             setStatus("");
           } catch (error) {
@@ -407,6 +491,12 @@ import "../styles/global.css";
       });
 
       refreshButton.addEventListener("click", loadTodos);
+      loginButton.addEventListener("click", () => {
+        beginTodoLogin({ ...authConfig, location: window.location });
+      });
+      logoutButton.addEventListener("click", () => {
+        window.location.assign(todoLogoutUrl(authConfig).toString());
+      });
 
       for (const button of filterButtons) {
         button.addEventListener("click", () => {
@@ -415,8 +505,25 @@ import "../styles/global.css";
         });
       }
 
-      app.dataset.ready = "true";
-      loadTodos();
+      async function initialize() {
+        app.dataset.ready = "true";
+        renderAuth();
+
+        if (hasCognitoConfig()) {
+          try {
+            authSession = await completeTodoLogin(authConfig) || authSession;
+          } catch (error) {
+            clearTodoSession();
+            authSession = null;
+            setStatus(error.message || "Could not sign in", "error");
+          }
+        }
+
+        renderAuth();
+        loadTodos();
+      }
+
+      initialize();
     </script>
   </body>
 </html>
